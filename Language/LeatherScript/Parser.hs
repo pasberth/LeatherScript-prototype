@@ -247,7 +247,7 @@ parse1 = do
 
 st :: ParserState
 st = ParserState {
-       keywords = HashSet.fromList ["*","+", "if"],
+       keywords = HashSet.fromList ["*","+", "if", "then", "else"],
        notations = HashMap.fromList [
               ("*", Notation (Infix "$x" [Keyword "*"] "$y") (Preference [Token "mul", Token "$x", Token "$y"]) LeftAssoc 70),
               ("+", Notation (Infix "$x" [Keyword "+"] "$y") (Preference [Token "add", Token "$x", Token "$y"]) LeftAssoc 60),
