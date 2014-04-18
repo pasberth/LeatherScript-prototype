@@ -113,8 +113,8 @@ runParserT = evalStateT . runEitherT . unParserT
 runParser :: Parser a -> ParserState -> Either ParseError a
 runParser = runIdentity .: (evalStateT . runEitherT . unParserT)
 
-parseError :: Monad m => ParserT m a
-parseError = ParserT $ left ParseError
+parseError :: Monad m => ParseError -> ParserT m a
+parseError err = ParserT $ left err
 
 countVariableInNotationPart :: NotationPart -> Int
 countVariableInNotationPart (Variable _) = 1
@@ -282,7 +282,7 @@ parse1 = do
                     print arguments
                   if i - 1 == Vector.length arguments
                     then exit
-                    else lift parseError
+                    else lift $ parseError ParseError
               else lift reduceLeft
           takeOperand
           tokens %= Vector.tail
