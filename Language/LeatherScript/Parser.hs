@@ -134,6 +134,19 @@ variablesInPattern (Postfix v parts _) = Vector.cons v (variablesInNotationParts
 variablesInPattern (Outfix _ parts _) = variablesInNotationParts parts
 variablesInPattern (Infix v1 parts v2) = Vector.cons v1 (Vector.snoc (variablesInNotationParts parts) v2)
 
+keywordsInNotationPart :: NotationPart -> Vector.Vector Keyword
+keywordsInNotationPart (Variable _) = Vector.empty
+keywordsInNotationPart (Keyword k) = Vector.singleton k
+
+keywordsInNotationParts :: NotationParts -> Vector.Vector Keyword
+keywordsInNotationParts parts = Vector.concatMap keywordsInNotationPart parts
+
+keywordsInPattern :: Pattern -> Vector.Vector Keyword
+keywordsInPattern (Prefix k parts _) = Vector.cons k (keywordsInNotationParts parts)
+keywordsInPattern (Postfix _ parts k) = Vector.snoc (keywordsInNotationParts parts) k
+keywordsInPattern (Outfix k1 parts k2) = Vector.cons k1 (Vector.snoc (keywordsInNotationParts parts) k2)
+keywordsInPattern (Infix _ parts _) = keywordsInNotationParts parts
+
 mkEnvironment :: Pattern -> Vector.Vector SyntaxTree -> HashMap.HashMap Variable SyntaxTree
 mkEnvironment pattern arguments = do
   let variables = variablesInPattern pattern
@@ -169,6 +182,14 @@ parse tokens = do
           _ -> rec
   rec
 
+takeOperand :: Monad m => ParserT m ()
+takeOperand = do
+  ParserState{notationStack, parserStack} <- get
+  let (notation, operands) = Vector.head notationStack
+  let operand = Vector.head parserStack
+  let newOperands = Vector.snoc operands operand
+  modify $ \s -> s { notationStack = Vector.cons (notation, newOperands) $ Vector.tail notationStack }
+
 reduceLeft :: Monad m => ParserT m ()
 reduceLeft = do
   ParserState{notationStack, parserStack} <- get
@@ -180,7 +201,7 @@ reduceLeft = do
   modify $ \s -> s { notationStack = Vector.tail notationStack }
   modify $ \s -> s { parserStack = Vector.cons st (Vector.tail parserStack) }
 
-parse1 :: Monad m => ParserT m ()
+parse1 :: MonadIO m => ParserT m ()
 parse1 = do
   ParserState{tokens, keywords} <- get
   if
@@ -212,6 +233,8 @@ parse1 = do
                             lift reduceLeft
                           | otherwise -> do
                             lift reduceLeft
+                      | otherwise -> do
+                        exit
                   ParserState{notationStack, parserStack} <- get
                   let left = Vector.head parserStack
                   modify $ \s -> s { notationStack = Vector.cons (notation, [left]) notationStack }
@@ -237,7 +260,26 @@ parse1 = do
 
 
         Nothing -> do
-          undefined
+            ParserState{parserStack, notationStack} <- get
+            foreach (Vector.toList notationStack) $ \(notation, _) -> do
+                                        let Notation pattern replacement assoc level = notation
+                                        let kws = keywordsInPattern pattern
+                                        if Vector.elem kw kws
+                                          then exit
+                                          else lift reduceLeft
+            ParserState{parserStack, notationStack} <- get
+            takeOperand
+            modify $ \s -> s { tokens = Vector.tail tokens }
+
+            --ParserState{parserStack, notationStack} <- get
+            --liftIO $ print notationStack
+            --liftIO $ print parserStack
+          {-ParserState{notationStack, parserStack} <- get
+          let (notation, appliedSTs) = Vector.head notationStack
+          modify $ \s -> s { notationStack = Vector.cons (notation, Vector.snoc appliedSTs (Vector.head parserStack)) (Vector.tail notationStack) }
+          case notation of
+            Notation (Prefix _ _ _) _ _ _ -> do
+              return ()-}
     | otherwise -> do
       ParserState{parserStack} <- get
       let tk = Vector.head tokens
