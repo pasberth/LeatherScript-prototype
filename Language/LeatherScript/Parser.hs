@@ -207,7 +207,7 @@ reduceLeft = do
   let e = mkEnvironment (notation ^. pattern) operands
   let st = subst (notation ^. replacement) e
   notationStack %= Vector.tail
-  parserStack %= (Vector.cons st)
+  parserStack %= Vector.cons st
 
 parse1 :: MonadIO m => ParserT m ()
 parse1 = do
