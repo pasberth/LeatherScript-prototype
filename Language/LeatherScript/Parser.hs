@@ -202,14 +202,12 @@ takeOperand = do
 
 reduceLeft :: Monad m => ParserT m ()
 reduceLeft = do
-  operands <- use (notationStack . element 0 . _2)
-  operand <- uses parserStack Vector.head
-  let newOperands = Vector.snoc operands operand
-  (notation, _) <- uses notationStack Vector.head
-  let e = mkEnvironment (notation ^. pattern) newOperands
+  takeOperand
+  (notation, operands) <- uses notationStack Vector.head
+  let e = mkEnvironment (notation ^. pattern) operands
   let st = subst (notation ^. replacement) e
   notationStack %= Vector.tail
-  parserStack . element 0 .= st
+  parserStack %= (Vector.cons st)
 
 parse1 :: MonadIO m => ParserT m ()
 parse1 = do
