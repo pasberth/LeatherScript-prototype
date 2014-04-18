@@ -252,22 +252,9 @@ parse1 = do
                   notationStack %= Vector.cons (notation, [left])
                   parserStack %= Vector.tail
                   tokens %= Vector.tail
-            Notation (Prefix _ _ _) _ assoc level -> do
-                  notationStack %= Vector.cons (notation, [])
-                  tokens %= Vector.tail
-                  {-let (leftNotation, appliedSTs) = Vector.last notationStack
-                  let Notation pattern _ _ _ = leftNotation
-
-                  if
-                    | (countVariableInPattern pattern - Vector.length appliedSTs) == 1 -> do
-                      let Notation _ _ leftAssoc leftLevel = leftNotation
-                      if
-                        | leftLevel < level -> do
-                          let left = Vector.last parserStack
-                          modify $ \s -> s { notationStack = Vector.snoc notationStack [(notation, [left])] }
-                          modify $ \s -> s { parserStack = Vector.init parserStack }
-                        | leftLevel > level -> do
-                          undefined-}
+            Notation (Prefix _ _ _) _ _ _ -> do
+              notationStack %= Vector.cons (notation, [])
+              tokens %= Vector.tail
 
 
         Nothing -> do
