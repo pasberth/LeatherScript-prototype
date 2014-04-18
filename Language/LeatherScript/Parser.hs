@@ -222,7 +222,7 @@ parse1 = do
         Just notation -> do
           case notation of
             Notation (Infix _ _ _) _ assoc level -> do
-                  ParserState{_notationStack, _parserStack} <- get
+                  ParserState{_notationStack} <- get
               {-if
                 | Vector.length notationStack == 0 -> do
                   let left = Vector.head parserStack
@@ -266,14 +266,14 @@ parse1 = do
 
 
         Nothing -> do
-            ParserState{_notationStack} <- get
-            foreach (Vector.toList _notationStack) $ \(notation, _) -> do
-              let kws = keywordsInPattern (notation ^. pattern)
-              if Vector.elem kw kws
-                then exit
-                else lift reduceLeft
-            takeOperand
-            tokens %= Vector.tail
+          ParserState{_notationStack} <- get
+          foreach (Vector.toList _notationStack) $ \(notation, _) -> do
+            let kws = keywordsInPattern (notation ^. pattern)
+            if Vector.elem kw kws
+              then exit
+              else lift reduceLeft
+          takeOperand
+          tokens %= Vector.tail
 
             --ParserState{parserStack, notationStack} <- get
             --liftIO $ print notationStack
