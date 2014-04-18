@@ -268,11 +268,10 @@ parse1 = do
         Nothing -> do
             ParserState{_notationStack} <- get
             foreach (Vector.toList _notationStack) $ \(notation, _) -> do
-                                        let Notation pattern _ _ _ = notation
-                                        let kws = keywordsInPattern pattern
-                                        if Vector.elem kw kws
-                                          then exit
-                                          else lift reduceLeft
+              let kws = keywordsInPattern (notation ^. pattern)
+              if Vector.elem kw kws
+                then exit
+                else lift reduceLeft
             takeOperand
             tokens %= Vector.tail
 
