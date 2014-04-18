@@ -1,0 +1,33 @@
+name:           leatherscript
+version:        0.0.1
+cabal-version:  >= 1.8
+build-type:     Simple
+license:        MIT
+license-file:   LICENSE
+copyright:      Copyright (C) 2014 Pasberth
+homepage:       https://github.com/pasberth/leatherscript
+bug-reports:    https://github.com/pasberth/leatherscript/issues
+author:         Pasberth
+maintainer:     Pasberth <pasberth@gmail.com>
+stability:      experimental
+synopsis:       Yet another altJS
+description:
+  TODO
+
+category:       Language
+
+library
+  ghc-options:    -Wall -O2
+  build-depends:
+      base
+    , mtl
+    , lens
+    , either
+    , control-monad-loop
+    , composition
+    , text
+    , unordered-containers
+    , vector
+  exposed-modules:
+    Language.LeatherScript.Types,
+    Language.LeatherScript.Parser
