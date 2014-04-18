@@ -14,6 +14,7 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Identity
 import           Control.Monad.State
+import           Control.Monad.Trans.Either
 import           Control.Monad.Trans.Loop
 import           Data.Composition((.:))
 import qualified Data.Maybe                     as Maybe
@@ -91,7 +92,7 @@ data ParserState
 newtype ParserT m a
   = ParserT
     {
-      unParserT :: StateT ParserState m a
+      unParserT :: EitherT ParseError (StateT ParserState m) a
     }
   deriving
     ( Functor
@@ -106,11 +107,14 @@ type Parser = ParserT Identity
 makeLenses ''Notation
 makeLenses ''ParserState
 
-runParserT :: Monad m => ParserT m a -> ParserState -> m a
-runParserT = evalStateT . unParserT
+runParserT :: Monad m => ParserT m a -> ParserState -> m (Either ParseError a)
+runParserT = evalStateT . runEitherT . unParserT
 
-runParser :: Parser a -> ParserState -> a
-runParser = runIdentity .: (evalStateT . unParserT)
+runParser :: Parser a -> ParserState -> Either ParseError a
+runParser = runIdentity .: (evalStateT . runEitherT . unParserT)
+
+parseError :: Monad m => ParserT m a
+parseError = ParserT $ left ParseError
 
 countVariableInNotationPart :: NotationPart -> Int
 countVariableInNotationPart (Variable _) = 1
@@ -173,7 +177,7 @@ variables (Token _) = Vector.empty
 variables (Preference v) = Vector.concatMap variables v
 -}
 
-parse :: (Monad m, MonadIO m) => Vector.Vector Text.Text -> ParserT m (Either ParseError SyntaxTree)
+parse :: (Monad m, MonadIO m) => Vector.Vector Text.Text -> ParserT m SyntaxTree
 parse _tokens = do
   tokens .= _tokens
   let rec = do
@@ -188,7 +192,7 @@ parse _tokens = do
             ParserState{_parserStack, _notationStack} <- get
             liftIO $ print _notationStack
             liftIO $ print _parserStack
-            return $ Right $ Vector.head _parserStack
+            return $ Vector.head _parserStack
           _ -> rec
   rec
 
@@ -267,10 +271,18 @@ parse1 = do
 
         Nothing -> do
           ParserState{_notationStack} <- get
-          foreach (Vector.toList _notationStack) $ \(notation, _) -> do
+          foreach (Vector.toList _notationStack) $ \(notation, arguments) -> do
             let kws = keywordsInPattern (notation ^. pattern)
             if Vector.elem kw kws
-              then exit
+              then case Vector.elemIndex kw kws of
+                Just i -> do
+                  lift $ liftIO $ do
+                    print kw
+                    print kws
+                    print arguments
+                  if i - 1 == Vector.length arguments
+                    then exit
+                    else lift parseError
               else lift reduceLeft
           takeOperand
           tokens %= Vector.tail
