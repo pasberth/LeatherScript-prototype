@@ -276,10 +276,6 @@ parse1 = do
             if Vector.elem kw kws
               then case Vector.elemIndex kw kws of
                 Just i -> do
-                  lift $ liftIO $ do
-                    print kw
-                    print kws
-                    print arguments
                   if i - 1 == Vector.length arguments
                     then exit
                     else lift $ parseError ParseError
