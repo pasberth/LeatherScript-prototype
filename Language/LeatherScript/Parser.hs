@@ -75,7 +75,8 @@ instance Show SyntaxTree where
   show (Token txt) = Text.unpack txt
   show (Preference v) = "(" ++ (join $ List.intersperse " " $ Vector.toList $ Vector.map show v) ++ ")"
 
-data ParseError = ParseError
+data ParseError
+  = Unexpected Text.Text
   deriving (Show)
 
 type ParserStack = Vector.Vector SyntaxTree
@@ -278,7 +279,7 @@ parse1 = do
                 Just i -> do
                   if i - 1 == Vector.length arguments
                     then exit
-                    else lift $ parseError ParseError
+                    else lift $ parseError $ Unexpected kw
               else lift reduceLeft
           takeOperand
           tokens %= Vector.tail
