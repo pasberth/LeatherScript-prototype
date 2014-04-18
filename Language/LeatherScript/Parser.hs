@@ -243,15 +243,13 @@ parse1 = do
                             lift reduceLeft
                       | otherwise -> do
                         exit
-                  ParserState{_notationStack, _parserStack} <- get
-                  let left = Vector.head _parserStack
-                  modify $ \s -> s { _notationStack = Vector.cons (notation, [left]) _notationStack }
-                  modify $ \s -> s { _parserStack = Vector.tail _parserStack }
-                  modify $ \s -> s { _tokens = Vector.tail _tokens }
+                  left <- uses parserStack Vector.head
+                  notationStack %= Vector.cons (notation, [left])
+                  parserStack %= Vector.tail
+                  tokens %= Vector.tail
             Notation (Prefix _ _ _) _ assoc level -> do
-                  ParserState{_notationStack, _parserStack} <- get
-                  modify $ \s -> s { _notationStack = Vector.cons (notation, []) _notationStack }
-                  modify $ \s -> s { _tokens = Vector.tail _tokens }
+                  notationStack %= Vector.cons (notation, [])
+                  tokens %= Vector.tail
                   {-let (leftNotation, appliedSTs) = Vector.last notationStack
                   let Notation pattern _ _ _ = leftNotation
 
@@ -277,7 +275,7 @@ parse1 = do
                                           else lift reduceLeft
             ParserState{_parserStack, _notationStack} <- get
             takeOperand
-            modify $ \s -> s { _tokens = Vector.tail _tokens }
+            tokens %= Vector.tail
 
             --ParserState{parserStack, notationStack} <- get
             --liftIO $ print notationStack
@@ -289,11 +287,10 @@ parse1 = do
             Notation (Prefix _ _ _) _ _ _ -> do
               return ()-}
     | otherwise -> do
-      ParserState{_parserStack} <- get
-      let tk = Vector.head _tokens
+      tk <- uses tokens Vector.head
       let st = Token tk
-      modify $ \s -> s { _parserStack = Vector.cons st _parserStack }
-      modify $ \s -> s { _tokens = Vector.tail _tokens }
+      parserStack %= Vector.cons st
+      tokens %= Vector.tail
 
 st :: ParserState
 st = ParserState {
