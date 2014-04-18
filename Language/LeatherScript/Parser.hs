@@ -227,36 +227,28 @@ parse1 = do
         Just notation -> do
           case notation of
             Notation (Infix _ _ _) _ assoc level -> do
-                  ParserState{_notationStack} <- get
-              {-if
-                | Vector.length notationStack == 0 -> do
-                  let left = Vector.head parserStack
-                  modify $ \s -> s { notationStack = [(notation, [left])] }
-                  modify $ \s -> s { parserStack = Vector.tail parserStack }
-                | otherwise -> do-}
-                  foreach (Vector.toList _notationStack) $ \(leftNotation, appliedSTs) -> do
-                    let Notation pattern replacement _ _ = leftNotation
+              ParserState{_notationStack} <- get
+              foreach (Vector.toList _notationStack) $ \(leftNotation, appliedSTs) -> do
+                let Notation pattern replacement _ _ = leftNotation
+                if
+                  | (countVariableInPattern pattern - Vector.length appliedSTs) == 1 -> do
+                    let Notation _ _ leftAssoc leftLevel = leftNotation
                     if
-                      | (countVariableInPattern pattern - Vector.length appliedSTs) == 1 -> do
-                        let Notation _ _ leftAssoc leftLevel = leftNotation
-                        if
-                          | leftLevel < level -> do
-                            exit
-                          | leftLevel > level -> do
-                            lift reduceLeft
-                          | otherwise -> do
-                            lift reduceLeft
-                      | otherwise -> do
+                      | leftLevel < level -> do
                         exit
-                  left <- uses parserStack Vector.head
-                  notationStack %= Vector.cons (notation, [left])
-                  parserStack %= Vector.tail
-                  tokens %= Vector.tail
+                      | leftLevel > level -> do
+                        lift reduceLeft
+                      | otherwise -> do
+                        lift reduceLeft
+                  | otherwise -> do
+                    exit
+              left <- uses parserStack Vector.head
+              notationStack %= Vector.cons (notation, [left])
+              parserStack %= Vector.tail
+              tokens %= Vector.tail
             Notation (Prefix _ _ _) _ _ _ -> do
               notationStack %= Vector.cons (notation, [])
               tokens %= Vector.tail
-
-
         Nothing -> do
           ParserState{_notationStack} <- get
           foreach (Vector.toList _notationStack) $ \(notation, arguments) -> do
