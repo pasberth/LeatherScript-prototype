@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE OverloadedLists            #-}
@@ -8,6 +9,7 @@
 
 module Language.LeatherScript.Parser where
 
+import           Control.Lens                   hiding (Level)
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Identity
@@ -50,7 +52,12 @@ data Pattern
   deriving (Show)
 
 data Notation
-  = Notation Pattern Replacement Associativity Level
+  = Notation
+    { _pattern :: Pattern
+    , _replacement :: Replacement
+    , _associativity :: Associativity
+    , _level :: Level
+    }
   deriving (Show)
 
 type Keywords = HashSet.HashSet Keyword
@@ -74,11 +81,11 @@ type ParserStack = Vector.Vector SyntaxTree
 
 data ParserState
   = ParserState
-    { keywords :: Keywords
-    , notations :: Notations
-    , notationStack :: NotationStack
-    , parserStack :: ParserStack
-    , tokens :: Vector.Vector Text.Text
+    { _keywords :: Keywords
+    , _notations :: Notations
+    , _notationStack :: NotationStack
+    , _parserStack :: ParserStack
+    , _tokens :: Vector.Vector Text.Text
     }
 
 newtype ParserT m a
@@ -95,6 +102,9 @@ newtype ParserT m a
     )
 
 type Parser = ParserT Identity
+
+makeLenses ''Notation
+makeLenses ''ParserState
 
 runParserT :: Monad m => ParserT m a -> ParserState -> m a
 runParserT = evalStateT . unParserT
@@ -163,65 +173,65 @@ variables (Token _) = Vector.empty
 variables (Preference v) = Vector.concatMap variables v
 -}
 
-parse :: MonadIO m => Vector.Vector Text.Text -> ParserT m (Either ParseError SyntaxTree)
-parse tokens = do
-  modify $ \s -> s { tokens = tokens }
+parse :: (Monad m, MonadIO m) => Vector.Vector Text.Text -> ParserT m (Either ParseError SyntaxTree)
+parse _tokens = do
+  tokens .= _tokens
   let rec = do
         parse1
-        ParserState{tokens} <- get
-        case tokens of
+        ParserState{_tokens} <- get
+        case _tokens of
           [] -> do
-            ParserState{parserStack, notationStack} <- get
-            liftIO $ print notationStack
-            liftIO $ print parserStack
-            Vector.forM_ notationStack $ \_ -> reduceLeft 
-            ParserState{parserStack, notationStack} <- get
-            liftIO $ print notationStack
-            liftIO $ print parserStack
-            return $ Right $ Vector.head parserStack
+            ParserState{_parserStack, _notationStack} <- get
+            liftIO $ print _notationStack
+            liftIO $ print _parserStack
+            Vector.forM_ _notationStack $ \_ -> reduceLeft 
+            ParserState{_parserStack, _notationStack} <- get
+            liftIO $ print _notationStack
+            liftIO $ print _parserStack
+            return $ Right $ Vector.head _parserStack
           _ -> rec
   rec
 
 takeOperand :: Monad m => ParserT m ()
 takeOperand = do
-  ParserState{notationStack, parserStack} <- get
-  let (notation, operands) = Vector.head notationStack
-  let operand = Vector.head parserStack
+  operands <- use (notationStack . element 0 . _2)
+  operand <- uses parserStack Vector.head
   let newOperands = Vector.snoc operands operand
-  modify $ \s -> s { notationStack = Vector.cons (notation, newOperands) $ Vector.tail notationStack }
+  notationStack %= (element 0 . _2 .~ newOperands)
+  parserStack %= Vector.tail
 
 reduceLeft :: Monad m => ParserT m ()
 reduceLeft = do
-  ParserState{notationStack, parserStack} <- get
-  let (notation, operands) = Vector.head notationStack
-  let operand = Vector.head parserStack
-  let Notation pattern replacement _ _ = notation
-  let e = mkEnvironment pattern (Vector.snoc operands operand)
-  let st = subst replacement e
-  modify $ \s -> s { notationStack = Vector.tail notationStack }
-  modify $ \s -> s { parserStack = Vector.cons st (Vector.tail parserStack) }
+  operands <- use (notationStack . element 0 . _2)
+  operand <- uses parserStack Vector.head
+  let newOperands = Vector.snoc operands operand
+  (notation, _) <- uses notationStack Vector.head
+  let e = mkEnvironment (notation ^. pattern) newOperands
+  let st = subst (notation ^. replacement) e
+  notationStack %= Vector.tail
+  parserStack %= (element 0 .~ st)
 
 parse1 :: MonadIO m => ParserT m ()
 parse1 = do
-  ParserState{tokens, keywords} <- get
+  ParserState{_tokens, _keywords} <- get
   if
-    | Vector.length tokens == 0 -> do
+    | Vector.length _tokens == 0 -> do
       return ()
-    | HashSet.member (Vector.head tokens) keywords -> do
-      let kw = Vector.head tokens
-      ParserState{notations} <- get
-      case HashMap.lookup kw notations of
+    | HashSet.member (Vector.head _tokens) _keywords -> do
+      let kw = Vector.head _tokens
+      ParserState{_notations} <- get
+      case HashMap.lookup kw _notations of
         Just notation -> do
           case notation of
             Notation (Infix _ _ _) _ assoc level -> do
-                  ParserState{notationStack, parserStack} <- get
+                  ParserState{_notationStack, _parserStack} <- get
               {-if
                 | Vector.length notationStack == 0 -> do
                   let left = Vector.head parserStack
                   modify $ \s -> s { notationStack = [(notation, [left])] }
                   modify $ \s -> s { parserStack = Vector.tail parserStack }
                 | otherwise -> do-}
-                  foreach (Vector.toList notationStack) $ \(leftNotation, appliedSTs) -> do
+                  foreach (Vector.toList _notationStack) $ \(leftNotation, appliedSTs) -> do
                     let Notation pattern replacement _ _ = leftNotation
                     if
                       | (countVariableInPattern pattern - Vector.length appliedSTs) == 1 -> do
@@ -235,15 +245,15 @@ parse1 = do
                             lift reduceLeft
                       | otherwise -> do
                         exit
-                  ParserState{notationStack, parserStack} <- get
-                  let left = Vector.head parserStack
-                  modify $ \s -> s { notationStack = Vector.cons (notation, [left]) notationStack }
-                  modify $ \s -> s { parserStack = Vector.tail parserStack }
-                  modify $ \s -> s { tokens = Vector.tail tokens }
+                  ParserState{_notationStack, _parserStack} <- get
+                  let left = Vector.head _parserStack
+                  modify $ \s -> s { _notationStack = Vector.cons (notation, [left]) _notationStack }
+                  modify $ \s -> s { _parserStack = Vector.tail _parserStack }
+                  modify $ \s -> s { _tokens = Vector.tail _tokens }
             Notation (Prefix _ _ _) _ assoc level -> do
-                  ParserState{notationStack, parserStack} <- get
-                  modify $ \s -> s { notationStack = Vector.cons (notation, []) notationStack }
-                  modify $ \s -> s { tokens = Vector.tail tokens }
+                  ParserState{_notationStack, _parserStack} <- get
+                  modify $ \s -> s { _notationStack = Vector.cons (notation, []) _notationStack }
+                  modify $ \s -> s { _tokens = Vector.tail _tokens }
                   {-let (leftNotation, appliedSTs) = Vector.last notationStack
                   let Notation pattern _ _ _ = leftNotation
 
@@ -260,16 +270,16 @@ parse1 = do
 
 
         Nothing -> do
-            ParserState{parserStack, notationStack} <- get
-            foreach (Vector.toList notationStack) $ \(notation, _) -> do
+            ParserState{_parserStack, _notationStack} <- get
+            foreach (Vector.toList _notationStack) $ \(notation, _) -> do
                                         let Notation pattern replacement assoc level = notation
                                         let kws = keywordsInPattern pattern
                                         if Vector.elem kw kws
                                           then exit
                                           else lift reduceLeft
-            ParserState{parserStack, notationStack} <- get
+            ParserState{_parserStack, _notationStack} <- get
             takeOperand
-            modify $ \s -> s { tokens = Vector.tail tokens }
+            modify $ \s -> s { _tokens = Vector.tail _tokens }
 
             --ParserState{parserStack, notationStack} <- get
             --liftIO $ print notationStack
@@ -281,21 +291,21 @@ parse1 = do
             Notation (Prefix _ _ _) _ _ _ -> do
               return ()-}
     | otherwise -> do
-      ParserState{parserStack} <- get
-      let tk = Vector.head tokens
+      ParserState{_parserStack} <- get
+      let tk = Vector.head _tokens
       let st = Token tk
-      modify $ \s -> s { parserStack = Vector.cons st parserStack }
-      modify $ \s -> s { tokens = Vector.tail tokens }
+      modify $ \s -> s { _parserStack = Vector.cons st _parserStack }
+      modify $ \s -> s { _tokens = Vector.tail _tokens }
 
 st :: ParserState
 st = ParserState {
-       keywords = HashSet.fromList ["*","+", "if", "then", "else"],
-       notations = HashMap.fromList [
+       _keywords = HashSet.fromList ["*","+", "if", "then", "else"],
+       _notations = HashMap.fromList [
               ("*", Notation (Infix "$x" [Keyword "*"] "$y") (Preference [Token "mul", Token "$x", Token "$y"]) LeftAssoc 70),
               ("+", Notation (Infix "$x" [Keyword "+"] "$y") (Preference [Token "add", Token "$x", Token "$y"]) LeftAssoc 60),
               ("if", Notation (Prefix "if" [Variable "$x", Keyword "then", Variable "$y", Keyword "else"] "$z") (Preference [Token "`if-then-else", Token "$x", Token "$y", Token "$z"]) RightAssoc 0)
               ],
-      notationStack = [],
-      parserStack = [],
-      tokens = []
+      _notationStack = [],
+      _parserStack = [],
+      _tokens = []
 }
