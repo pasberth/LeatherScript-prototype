@@ -70,6 +70,7 @@ type NotationStack = Vector.Vector NotationStackValue
 data SyntaxTree
   = Token Text.Text
   | Preference (Vector.Vector SyntaxTree)
+  deriving (Eq)
 
 instance Show SyntaxTree where
   show (Token txt) = Text.unpack txt
@@ -77,7 +78,7 @@ instance Show SyntaxTree where
 
 data ParseError
   = Unexpected Text.Text
-  deriving (Show)
+  deriving (Show, Eq)
 
 type ParserStack = Vector.Vector SyntaxTree
 
@@ -178,7 +179,7 @@ variables (Token _) = Vector.empty
 variables (Preference v) = Vector.concatMap variables v
 -}
 
-parse :: (Monad m, MonadIO m) => Vector.Vector Text.Text -> ParserT m SyntaxTree
+parse :: Monad m => Vector.Vector Text.Text -> ParserT m SyntaxTree
 parse _tokens = do
   tokens .= _tokens
   let rec = do
@@ -187,12 +188,12 @@ parse _tokens = do
         case _tokens of
           [] -> do
             ParserState{_parserStack, _notationStack} <- get
-            liftIO $ print _notationStack
-            liftIO $ print _parserStack
+            --liftIO $ print _notationStack
+            --liftIO $ print _parserStack
             Vector.forM_ _notationStack $ \_ -> reduceLeft 
             ParserState{_parserStack, _notationStack} <- get
-            liftIO $ print _notationStack
-            liftIO $ print _parserStack
+            --liftIO $ print _notationStack
+            --liftIO $ print _parserStack
             return $ Vector.head _parserStack
           _ -> rec
   rec
@@ -214,7 +215,7 @@ reduceLeft = do
   notationStack %= Vector.tail
   parserStack %= Vector.cons st
 
-parse1 :: MonadIO m => ParserT m ()
+parse1 :: Monad m => ParserT m ()
 parse1 = do
   ParserState{_tokens, _keywords} <- get
   if
@@ -290,3 +291,13 @@ st = ParserState {
       _parserStack = [],
       _tokens = []
 }
+
+emptyParserState :: ParserState
+emptyParserState
+  = ParserState
+    { _keywords = HashSet.empty
+    , _notations = HashMap.empty
+    , _notationStack = []
+    , _parserStack = []
+    , _tokens = []
+    }

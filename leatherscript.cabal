@@ -31,3 +31,15 @@ library
   exposed-modules:
     Language.LeatherScript.Types,
     Language.LeatherScript.Parser
+
+test-suite test-infix-notation
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:
+    test
+  main-is: InfixNotationSpec.hs
+  build-depends:
+      base
+    , lens
+    , unordered-containers
+    , leatherscript
+    , hspec
