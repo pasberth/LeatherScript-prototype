@@ -53,6 +53,14 @@ postfixNotations
                       ("!", Notation (Postfix "$a" [] "!") (sexp "(! $a)") LeftAssoc 80)
                     ]
 
+outfixNotations :: ParserState
+outfixNotations
+  = emptyParserState
+    & keywords .~ HashSet.fromList ["(", ")"]
+    & notations .~ HashMap.fromList [
+                    ("(", Notation (Outfix "(" [Variable "$a"] ")") (sexp "($a)") NoAssoc 200)
+                  ]
+
 infixNotations :: ParserState
 infixNotations
   = emptyParserState
@@ -122,6 +130,17 @@ main = hspec $ do
     it "a ! ! ! == (! (! (! a)))" $ do
       assert "a ! ! !" "(! (! (! a)))"
 
+  describe "outfix notations" $ do
+    let parse' tokens = runParser (parse tokens) outfixNotations
+    let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+
+    it "(a) == (a)" $ do
+      assert "( a )" "(a)"
+    it "((a)) == (a)" $ do
+      assert "( ( a ) )" "(a)"
+    it "(((a))) == (a)" $ do
+      assert "( ( ( a ) ) )" "(a)"
+
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
@@ -166,6 +185,8 @@ main = hspec $ do
   describe "complex notations" $ do
     let parse' tokens = runParser (parse tokens) complexNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+    it "a * (b + c) == (* a (+ b c))" $ do
+      assert "a * (b + c)" "(* a (+ b c))"
     it "~ a = b == (~ (= a b))" $ do
       assert "~ a = b" "(~ (= a b))"
     it "if a and b then c + d else e + f == (if-then-else (and a b) (+ c d) (+ e f))" $ do
