@@ -263,9 +263,13 @@ parse1 = do
               notationStack %= Vector.cons (notation, [left])
               parserStack %= Vector.tail
               tokens %= Vector.tail
-            Notation (Outfix _ _ _) _ _ _ -> do
+            Notation (Outfix open _ close) _ _ _ -> do
               notationStack %= Vector.cons (notation, [])
               tokens %= Vector.tail
+
+              -- for instance, "| x |"
+              when (open == close) $ do
+                notations %= HashMap.delete kw
             Notation (Infix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
@@ -277,8 +281,8 @@ parse1 = do
           foreach (Vector.toList _notationStack) $ \(notation, arguments) -> do
             let kws = keywordsInPattern (notation ^. pattern)
             if Vector.elem kw kws
-              then case Vector.elemIndex kw kws of
-                Just i -> do
+              then case Vector.last (Vector.elemIndices kw kws) of
+                i -> do
                   if
                     | i - 1 == Vector.length arguments -> do
                       exit
@@ -293,6 +297,14 @@ parse1 = do
               reduceLeft
             else
               takeOperand
+          case notation ^. pattern of
+            Outfix open _ close
+              | open == close -> do
+                notations %= HashMap.insert open notation
+              | otherwise -> do
+                return ()
+            _ -> do
+              return ()
           tokens %= Vector.tail
     | otherwise -> do
       tk <- uses tokens Vector.head

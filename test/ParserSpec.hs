@@ -55,9 +55,10 @@ postfixNotations
 outfixNotations :: ParserState
 outfixNotations
   = emptyParserState
-    & keywords .~ HashSet.fromList ["(", ")"]
+    & keywords .~ HashSet.fromList ["(", ")", "|"]
     & notations .~ HashMap.fromList [
                     ("(", Notation (Outfix "(" [Variable "$a"] ")") (sexp "$a") NoAssoc 200)
+                  , ("|", Notation (Outfix "|" [Variable "$a"] "|") (sexp "(abs $a)") NoAssoc 200)
                   ]
 
 infixNotations :: ParserState
@@ -141,6 +142,9 @@ main = hspec $ do
       assert "( ( a ) )" "a"
     it "(((a))) == a" $ do
       assert "( ( ( a ) ) )" "a"
+
+    it "|a| == (abs a)" $ do
+      assert "| a |" "(abs a)"
 
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
