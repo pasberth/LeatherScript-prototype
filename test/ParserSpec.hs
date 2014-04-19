@@ -53,9 +53,10 @@ infixNotations
 prefixNotations :: ParserState
 prefixNotations
   = emptyParserState
-    & keywords .~ HashSet.fromList ["~"]
+    & keywords .~ HashSet.fromList ["~", "if", "then", "else"]
     & notations .~ HashMap.fromList [
                       ("~", Notation (Prefix "~" [] "$a") (sexp "(~ $a)") RightAssoc 35)
+                    , ("if", Notation (Prefix "if" [Variable "$a", Keyword "then", Variable "$b", Keyword "else"] "$c") (sexp "(if-then-else $a $b $c)") RightAssoc 0)
                     ]
 
 main :: IO ()
@@ -72,6 +73,12 @@ main = hspec $ do
 
     it "~ ~ ~ P == (~ (~ (~ P)))" $ do
       assert "~ ~ ~ P" "(~ (~ (~ P)))"
+
+    it "if a then b else c == (if-then-else a b c)" $ do
+      assert "if a then b else c" "(if-then-else a b c)"
+
+    it "if if a then b else c then if d then e else f else if g then h else i == (if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))" $ do
+      assert "if if a then b else c then if d then e else f else if g then h else i" "(if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))"
 
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations

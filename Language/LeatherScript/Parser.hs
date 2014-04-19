@@ -276,7 +276,7 @@ parse1 = do
                 Just i -> do
                   if i - 1 == Vector.length arguments
                     then exit
-                    else lift $ parseError $ Unexpected kw
+                    else lift $ reduceLeft
               else lift reduceLeft
           takeOperand
           tokens %= Vector.tail
