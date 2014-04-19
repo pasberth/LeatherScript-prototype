@@ -23,6 +23,7 @@ library
     , mtl
     , lens
     , either
+    , control-bool
     , control-monad-loop
     , composition
     , text

@@ -215,6 +215,28 @@ reduceLeft = do
   notationStack %= Vector.tail
   parserStack %= Vector.cons st
 
+reduceGroup :: Monad m => Notation -> ParserT m ()
+reduceGroup notation = do
+  ParserState{_notationStack} <- get
+  foreach (Vector.toList _notationStack) $ \(left, arguments) -> do
+    if
+      | (countVariableInPattern (left ^. pattern) - Vector.length arguments) == 1 -> do
+        if
+          | (left ^. level) < (notation ^. level) -> do
+            exit
+          | (left ^. level) > (notation ^. level) -> do
+            lift reduceLeft
+          | otherwise -> do
+            case (left ^. associativity, left ^. associativity) of
+              (LeftAssoc, LeftAssoc) ->
+                lift reduceLeft
+              (RightAssoc, RightAssoc) ->
+                exit
+              _ ->
+                error "I'm sorry. several associativities are pending features."
+      | otherwise -> do
+        exit
+
 parse1 :: Monad m => ParserT m ()
 parse1 = do
   ParserState{_tokens, _keywords} <- get
@@ -227,34 +249,14 @@ parse1 = do
       case HashMap.lookup kw _notations of
         Just notation -> do
           case notation of
+            Notation (Prefix _ _ _) _ _ _ -> do
+              notationStack %= Vector.cons (notation, [])
+              tokens %= Vector.tail
             Notation (Infix _ _ _) _ assoc level -> do
-              ParserState{_notationStack} <- get
-              foreach (Vector.toList _notationStack) $ \(leftNotation, appliedSTs) -> do
-                let Notation pattern replacement _ _ = leftNotation
-                if
-                  | (countVariableInPattern pattern - Vector.length appliedSTs) == 1 -> do
-                    let Notation _ _ leftAssoc leftLevel = leftNotation
-                    if
-                      | leftLevel < level -> do
-                        exit
-                      | leftLevel > level -> do
-                        lift reduceLeft
-                      | otherwise -> do
-                        case (leftAssoc, assoc) of
-                          (LeftAssoc, LeftAssoc) ->
-                            lift reduceLeft
-                          (RightAssoc, RightAssoc) ->
-                            exit
-                          _ ->
-                            error "I'm sorry. several associativities are pending features."
-                  | otherwise -> do
-                    exit
+              reduceGroup notation
               left <- uses parserStack Vector.head
               notationStack %= Vector.cons (notation, [left])
               parserStack %= Vector.tail
-              tokens %= Vector.tail
-            Notation (Prefix _ _ _) _ _ _ -> do
-              notationStack %= Vector.cons (notation, [])
               tokens %= Vector.tail
         Nothing -> do
           ParserState{_notationStack} <- get
