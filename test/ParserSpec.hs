@@ -64,6 +64,7 @@ main = hspec $ do
   describe "prefix notations" $ do
     let parse' tokens = runParser (parse tokens) prefixNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+    let failure x y = parse' (tokenize x) `shouldBe` Left y
 
     it "~ P == (~ P)" $ do
       assert "~ P" "(~ P)"
@@ -79,6 +80,9 @@ main = hspec $ do
 
     it "if if a then b else c then if d then e else f else if g then h else i == (if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))" $ do
       assert "if if a then b else c then if d then e else f else if g then h else i" "(if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))"
+
+    it "if a else b then c -> parse error" $ do
+      failure "if a else b then c" (Unexpected "else")
 
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
