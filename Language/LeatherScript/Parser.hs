@@ -308,8 +308,20 @@ parse1 = do
     | otherwise -> do
       tk <- uses tokens Vector.head
       let st = Token tk
-      parserStack %= Vector.cons st
-      tokens %= Vector.tail
+
+      use parserStack >>= \case 
+        [] -> do
+          parserStack .= Vector.singleton st
+          tokens %= Vector.tail
+        _ -> do
+          uses notations (HashMap.lookup "") >>= \case
+            Nothing -> undefined
+            Just notation -> do
+              reduceGroup notation
+              left <- uses parserStack Vector.head
+              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              parserStack %= Vector.tail
+--          parserStack %= Vector.cons st
 
 emptyParserState :: ParserState
 emptyParserState

@@ -74,6 +74,7 @@ infixNotations
                     ,   ("?", Notation (Infix "$a" [Keyword "?", Variable "$b", Keyword ":"] "$c") (sexp "(?: $a $b $c)") RightAssoc 10)
                     ,   ("and", Notation (Infix "$a" [Keyword "and"]"$b") (sexp "(and $a $b)") RightAssoc 30)
                     ,   ("or", Notation (Infix "$a" [Keyword "or"] "$b") (sexp "(or $a $b)") RightAssoc 20)
+                    ,   ("", Notation (Infix "$a" [] "$b") (sexp "($a $b)") LeftAssoc 100)
                     ]
 
 complexNotations :: ParserState
@@ -143,7 +144,6 @@ main = hspec $ do
       assert "( ( a ) )" "a"
     it "(((a))) == a" $ do
       assert "( ( ( a ) ) )" "a"
-
     it "|a| == (abs a)" $ do
       assert "| a |" "(abs a)"
 
@@ -193,6 +193,12 @@ main = hspec $ do
       assert "a ? b : c" "(?: a b c)"
     it "(a and b ? c + d : e + f) == (?: (and a b) (+ c d) (+ e f))" $ do
       assert "a and b ? c + d : e + f" "(?: (and a b) (+ c d) (+ e f))"
+    it "f x == (f x)" $ do
+      assert "f x" "(f x)"
+    it "f x y == ((f x) y)" $ do
+      assert "f x y" "((f x) y)"
+    it "f x + g x == (+ (f x) (g x))" $ do
+      assert "f x + g x" "(+ (f x) (g x))"
 
   describe "complex notations" $ do
     let parse' tokens = runParser (parse tokens) complexNotations
@@ -207,3 +213,5 @@ main = hspec $ do
       assert "if a and b then c + d else e + f" "(if-then-else (and a b) (+ c d) (+ e f))"
     it "~ a ! + ~ b ! == (~ (+ (! a) (~ (! b))))" $ do
       assert "~ a ! + ~ b !" "(~ (+ (! a) (~ (! b))))"
+    it "|a||b| == ((abs a) (abs b))" $ do
+      assert "| a | | b |" "((abs a) (abs b))"
