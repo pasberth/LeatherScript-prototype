@@ -280,9 +280,13 @@ parse1 = do
             if Vector.elem kw kws
               then case Vector.elemIndex kw kws of
                 Just i -> do
-                  if i - 1 == Vector.length arguments
-                    then exit
-                    else lift reduceLeft
+                  if
+                    | i - 1 == Vector.length arguments -> do
+                      exit
+                    | countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1 -> do
+                      lift reduceLeft
+                    | otherwise -> do
+                      lift $ parseError $ Unexpected kw
               else lift reduceLeft
           (notation, arguments) <- uses notationStack Vector.head
           if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
