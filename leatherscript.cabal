@@ -33,11 +33,13 @@ library
     Language.LeatherScript.Types,
     Language.LeatherScript.Parser
 
-test-suite test-infix-notation
-  type:                 exitcode-stdio-1.0
+test-suite test-parser
+  type:
+    exitcode-stdio-1.0
   hs-source-dirs:
     test
-  main-is: InfixNotationSpec.hs
+  main-is:
+    ParserSpec.hs
   build-depends:
       base
     , lens

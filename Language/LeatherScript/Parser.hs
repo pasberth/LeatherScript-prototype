@@ -252,7 +252,16 @@ parse1 = do
             Notation (Prefix _ _ _) _ _ _ -> do
               notationStack %= Vector.cons (notation, [])
               tokens %= Vector.tail
-            Notation (Infix _ _ _) _ assoc level -> do
+            Notation (Postfix _ _ _) _ _ _ -> do
+              reduceGroup notation
+              left <- uses parserStack Vector.head
+              notationStack %= Vector.cons (notation, [left])
+              parserStack %= Vector.tail
+              tokens %= Vector.tail
+            Notation (Outfix _ _ _) _ _ _ -> do
+              notationStack %= Vector.cons (notation, [])
+              tokens %= Vector.tail
+            Notation (Infix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
               notationStack %= Vector.cons (notation, [left])

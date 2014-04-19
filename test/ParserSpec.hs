@@ -50,8 +50,29 @@ infixNotations
                     ,   ("or", Notation (Infix "$a" [Keyword "or"] "$b") (sexp "(or $a $b)") RightAssoc 20)
                     ]
 
+prefixNotations :: ParserState
+prefixNotations
+  = emptyParserState
+    & keywords .~ HashSet.fromList ["~"]
+    & notations .~ HashMap.fromList [
+                      ("~", Notation (Prefix "~" [] "$a") (sexp "(~ $a)") RightAssoc 35)
+                    ]
+
 main :: IO ()
 main = hspec $ do
+  describe "prefix notations" $ do
+    let parse' tokens = runParser (parse tokens) prefixNotations
+    let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+
+    it "~ P == (~ P)" $ do
+      assert "~ P" "(~ P)"
+
+    it "~ ~ P == (~ (~ P))" $ do
+      assert "~ ~ P" "(~ (~ P))"
+
+    it "~ ~ ~ P == (~ (~ (~ P)))" $ do
+      assert "~ ~ ~ P" "(~ (~ (~ P)))"
+
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
