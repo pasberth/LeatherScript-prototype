@@ -24,6 +24,7 @@ import qualified Data.Vector                    as Vector
 import qualified Data.HashSet                   as HashSet
 import qualified Data.HashMap.Strict            as HashMap
 import qualified Language.LeatherScript.Types()
+import qualified Debug.Trace
 
 type Variable = Text.Text
 type Keyword = Text.Text
@@ -219,23 +220,27 @@ reduceGroup :: Monad m => Notation -> ParserT m ()
 reduceGroup notation = do
   ParserState{_notationStack} <- get
   foreach (Vector.toList _notationStack) $ \(left, arguments) -> do
-    if
-      | (countVariableInPattern (left ^. pattern) - Vector.length arguments) == 1 -> do
-        if
-          | (left ^. level) < (notation ^. level) -> do
-            exit
-          | (left ^. level) > (notation ^. level) -> do
-            lift reduceLeft
-          | otherwise -> do
-            case (left ^. associativity, left ^. associativity) of
-              (LeftAssoc, LeftAssoc) ->
-                lift reduceLeft
-              (RightAssoc, RightAssoc) ->
-                exit
-              _ ->
-                error "I'm sorry. several associativities are pending features."
-      | otherwise -> do
+    case left ^. pattern of
+      Outfix _ _ _ ->
         exit
+      _ -> do
+        if
+          | (countVariableInPattern (left ^. pattern) - Vector.length arguments) == 1 -> do
+            if
+              | (left ^. level) < (notation ^. level) -> do
+                exit
+              | (left ^. level) > (notation ^. level) -> do
+                lift reduceLeft
+              | otherwise -> do
+                case (left ^. associativity, left ^. associativity) of
+                  (LeftAssoc, LeftAssoc) ->
+                    lift reduceLeft
+                  (RightAssoc, RightAssoc) ->
+                    exit
+                  _ ->
+                    error "I'm sorry. several associativities are pending features."
+          | otherwise -> do
+            exit
 
 parse1 :: Monad m => ParserT m ()
 parse1 = do

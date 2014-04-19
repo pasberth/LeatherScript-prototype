@@ -81,11 +81,13 @@ complexNotations
     & keywords .~ HashSet.unions [
                       prefixNotations ^. keywords
                     , postfixNotations ^. keywords
+                    , outfixNotations ^. keywords
                     , infixNotations ^. keywords
                     ]
     & notations .~ HashMap.unions [
                       prefixNotations ^. notations
                     , postfixNotations ^. notations
+                    , outfixNotations ^. notations
                     , infixNotations ^. notations
                     ]
 
@@ -135,11 +137,11 @@ main = hspec $ do
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
 
     it "(a) == (a)" $ do
-      assert "( a )" "(a)"
+      assert "( a )" "a"
     it "((a)) == (a)" $ do
-      assert "( ( a ) )" "(a)"
+      assert "( ( a ) )" "a"
     it "(((a))) == (a)" $ do
-      assert "( ( ( a ) ) )" "(a)"
+      assert "( ( ( a ) ) )" "a"
 
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
@@ -185,8 +187,10 @@ main = hspec $ do
   describe "complex notations" $ do
     let parse' tokens = runParser (parse tokens) complexNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+    it "(a + b) == (+ a b)" $ do
+      assert "( a + b )" "(+ a b)"
     it "a * (b + c) == (* a (+ b c))" $ do
-      assert "a * (b + c)" "(* a (+ b c))"
+      assert "a * ( b + c )" "(* a (+ b c))"
     it "~ a = b == (~ (= a b))" $ do
       assert "~ a = b" "(~ (= a b))"
     it "if a and b then c + d else e + f == (if-then-else (and a b) (+ c d) (+ e f))" $ do
