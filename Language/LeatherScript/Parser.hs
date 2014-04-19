@@ -240,7 +240,11 @@ parse1 = do
                       | leftLevel > level -> do
                         lift reduceLeft
                       | otherwise -> do
-                        lift reduceLeft
+                        case (leftAssoc, assoc) of
+                          (LeftAssoc, LeftAssoc) ->
+                            lift reduceLeft
+                          (RightAssoc, RightAssoc) ->
+                            exit
                   | otherwise -> do
                     exit
               left <- uses parserStack Vector.head

@@ -76,7 +76,7 @@ main = hspec $ do
     it "(x and y) == (and x y)" $ do
       assert "x and y" "(and x y)"
     it "(x and y and z) == (and x (and y z))" $ do
-      assert "(x and y and z)" "(and x (and y z))"
+      assert "x and y and z" "(and x (and y z))"
     it "(a = b and c = d) == (and (= a b) (= c d))" $ do
       assert "a = b and c = d" "(and (= a b) (= c d))"
     -- TODO: a = b = c
