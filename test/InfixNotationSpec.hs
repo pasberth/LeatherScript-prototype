@@ -39,12 +39,15 @@ sexp s = case Text.Trifecta.parseString parser (Text.Trifecta.Delta.Columns 0 0)
 infixNotations :: ParserState
 infixNotations
   = emptyParserState
-    & keywords .~ HashSet.fromList ["+","-","*","/"]
+    & keywords .~ HashSet.fromList ["+","-","*","/","=","and","or"]
     & notations .~ HashMap.fromList [
-                        ("+", Notation (Infix "$a" [Keyword "+"] "$b") (Preference [Token "+", Token "$a", Token "$b"]) LeftAssoc 60)
-                    ,   ("-", Notation (Infix "$a" [Keyword "-"] "$b") (Preference [Token "-", Token "$a", Token "$b"]) LeftAssoc 60)
-                    ,   ("*", Notation (Infix "$a" [Keyword "*"] "$b") (Preference [Token "*", Token "$a", Token "$b"]) LeftAssoc 70)
-                    ,   ("/", Notation (Infix "$a" [Keyword "/"] "$b") (Preference [Token "/", Token "$a", Token "$b"]) LeftAssoc 70)
+                        ("+", Notation (Infix "$a" [Keyword "+"] "$b") (sexp "(+ $a $b)") LeftAssoc 60)
+                    ,   ("-", Notation (Infix "$a" [Keyword "-"] "$b") (sexp "(- $a $b)") LeftAssoc 60)
+                    ,   ("*", Notation (Infix "$a" [Keyword "*"] "$b") (sexp "(* $a $b)") LeftAssoc 70)
+                    ,   ("/", Notation (Infix "$a" [Keyword "/"] "$b") (sexp "(/ $a $b)") LeftAssoc 70)
+                    ,   ("=", Notation (Infix "$a" [Keyword "="] "$b") (sexp "(= $a $b)") NoAssoc 40)
+                    ,   ("and", Notation (Infix "$a" [Keyword "and"]"$b") (sexp "(and $a $b)") RightAssoc 30)
+                    ,   ("or", Notation (Infix "$a" [Keyword "or"] "$b") (sexp "(or $a $b)") RightAssoc 20)
                     ]
 
 main :: IO ()
@@ -70,3 +73,22 @@ main = hspec $ do
       assert "a + b * c * d" "(+ a (* (* b c) d))"
     it "(a * b * c + d) == (+ (* (* a b) c) d)" $ do
       assert "a * b * c + d" "(+ (* (* a b) c) d)"
+    it "(x and y) == (and x y)" $ do
+      assert "x and y" "(and x y)"
+    it "(x and y and z) == (and x (and y z))" $ do
+      assert "(x and y and z)" "(and x (and y z))"
+    it "(a = b and c = d) == (and (= a b) (= c d))" $ do
+      assert "a = b and c = d" "(and (= a b) (= c d))"
+    -- TODO: a = b = c
+    it "(a or b and c or d) == (or a (or (and b c) d))" $ do
+      assert "a or b and c or d" "(or a (or (and b c) d))"
+    it "(a and b or c or d) == (or (and a b) (or c d))" $ do
+      assert "a and b or c or d" "(or (and a b) (or c d))"
+    it "(a or b or c and d) == (or a (or b (and c d)))" $ do
+      assert "a or b or c and d" "(or a (or b (and c d)))"
+    it "(a and b or c and d) == (or (and a b) (and c d))" $ do
+      assert "a and b or c and d" "(or (and a b) (and c d))"
+    it "(a or b and c and d) == (or a (and b (and c d)))" $ do
+      assert "a or b and c and d" "(or a (and b (and c d)))"
+    it "(a and b and c or d) == (or (and a (and b c)) d)" $ do
+      assert "a and b and c or d" "(or (and a (and b c)) d)"
