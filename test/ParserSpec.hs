@@ -32,9 +32,8 @@ sexp s = case Text.Trifecta.parseString parser (Text.Trifecta.Delta.Columns 0 0)
       xs <- many parser
       Text.Trifecta.char ')'
       return $ Preference $ Vector.fromList xs
-    token = do
-      s <- some $ Text.Trifecta.noneOf "() "
-      return $ Token $ Text.pack s
+
+    token = Token . Text.pack <$> some (Text.Trifecta.noneOf "() ")
 
 prefixNotations :: ParserState
 prefixNotations
@@ -136,11 +135,11 @@ main = hspec $ do
     let parse' tokens = runParser (parse tokens) outfixNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
 
-    it "(a) == (a)" $ do
+    it "(a) == a" $ do
       assert "( a )" "a"
-    it "((a)) == (a)" $ do
+    it "((a)) == a" $ do
       assert "( ( a ) )" "a"
-    it "(((a))) == (a)" $ do
+    it "(((a))) == a" $ do
       assert "( ( ( a ) ) )" "a"
 
   describe "infix notations" $ do
