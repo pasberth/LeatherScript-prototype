@@ -40,6 +40,9 @@ test-suite test-infix-notation
   build-depends:
       base
     , lens
+    , text
     , unordered-containers
+    , vector
+    , trifecta
     , leatherscript
     , hspec
