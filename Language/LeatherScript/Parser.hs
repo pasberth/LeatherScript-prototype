@@ -301,34 +301,11 @@ parse1 = do
             else
               takeOperand
           tokens %= Vector.tail
-
-            --ParserState{parserStack, notationStack} <- get
-            --liftIO $ print notationStack
-            --liftIO $ print parserStack
-          {-ParserState{notationStack, parserStack} <- get
-          let (notation, appliedSTs) = Vector.head notationStack
-          modify $ \s -> s { notationStack = Vector.cons (notation, Vector.snoc appliedSTs (Vector.head parserStack)) (Vector.tail notationStack) }
-          case notation of
-            Notation (Prefix _ _ _) _ _ _ -> do
-              return ()-}
     | otherwise -> do
       tk <- uses tokens Vector.head
       let st = Token tk
       parserStack %= Vector.cons st
       tokens %= Vector.tail
-
-st :: ParserState
-st = ParserState {
-       _keywords = HashSet.fromList ["*","+", "if", "then", "else"],
-       _notations = HashMap.fromList [
-              ("*", Notation (Infix "$x" [Keyword "*"] "$y") (Preference [Token "mul", Token "$x", Token "$y"]) LeftAssoc 70),
-              ("+", Notation (Infix "$x" [Keyword "+"] "$y") (Preference [Token "add", Token "$x", Token "$y"]) LeftAssoc 60),
-              ("if", Notation (Prefix "if" [Variable "$x", Keyword "then", Variable "$y", Keyword "else"] "$z") (Preference [Token "`if-then-else", Token "$x", Token "$y", Token "$z"]) RightAssoc 0)
-              ],
-      _notationStack = [],
-      _parserStack = [],
-      _tokens = []
-}
 
 emptyParserState :: ParserState
 emptyParserState
