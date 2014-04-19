@@ -62,3 +62,11 @@ main = hspec $ do
       assert "a + b * c + d" "(+ (+ a (* b c)) d)"
     it "(a * b + c + d) == (+ (+ (* a b) c) d)" $ do
       assert "a * b + c + d" "(+ (+ (* a b) c) d)"
+    it "(a + b + c * d) == (+ (+ a b) (* c d))" $ do
+      assert "a + b + c * d" "(+ (+ a b) (* c d))"
+    it "(a * b + c * d) == (+ (* a b) (* c d))" $ do
+      assert "a * b + c * d" "(+ (* a b) (* c d))"
+    it "(a + b * c * d) == (+ a (* (* b c) d))" $ do
+      assert "a + b * c * d" "(+ a (* (* b c) d))"
+    it "(a * b * c + d) == (+ (* (* a b) c) d)" $ do
+      assert "a * b * c + d" "(+ (* (* a b) c) d)"
