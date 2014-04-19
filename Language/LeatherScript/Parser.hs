@@ -287,9 +287,14 @@ parse1 = do
                 Just i -> do
                   if i - 1 == Vector.length arguments
                     then exit
-                    else lift $ reduceLeft
+                    else lift reduceLeft
               else lift reduceLeft
-          takeOperand
+          (notation, arguments) <- uses notationStack Vector.head
+          if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
+            then
+              reduceLeft
+            else
+              takeOperand
           tokens %= Vector.tail
 
             --ParserState{parserStack, notationStack} <- get

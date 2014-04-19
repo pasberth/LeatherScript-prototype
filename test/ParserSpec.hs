@@ -58,7 +58,7 @@ outfixNotations
   = emptyParserState
     & keywords .~ HashSet.fromList ["(", ")"]
     & notations .~ HashMap.fromList [
-                    ("(", Notation (Outfix "(" [Variable "$a"] ")") (sexp "($a)") NoAssoc 200)
+                    ("(", Notation (Outfix "(" [Variable "$a"] ")") (sexp "$a") NoAssoc 200)
                   ]
 
 infixNotations :: ParserState
