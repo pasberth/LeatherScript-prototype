@@ -245,6 +245,8 @@ parse1 = do
                             lift reduceLeft
                           (RightAssoc, RightAssoc) ->
                             exit
+                          _ ->
+                            error "I'm sorry. several associativities are pending features."
                   | otherwise -> do
                     exit
               left <- uses parserStack Vector.head
