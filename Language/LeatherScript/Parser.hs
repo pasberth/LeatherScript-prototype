@@ -64,7 +64,7 @@ data Notation
 type Keywords = HashSet.HashSet Keyword
 type Notations = HashMap.HashMap Keyword Notation
 
-type NotationStackValue = (Notation, Vector.Vector SyntaxTree)
+type NotationStackValue = (Notation, Vector.Vector SyntaxTree, Vector.Vector Keyword)
 type NotationStack = Vector.Vector NotationStackValue
 
 data SyntaxTree
@@ -77,7 +77,8 @@ instance Show SyntaxTree where
   show (Preference v) = "(" ++ (join $ List.intersperse " " $ Vector.toList $ Vector.map show v) ++ ")"
 
 data ParseError
-  = Unexpected Text.Text
+  = Unexpected Text.Text -- expecting
+                Text.Text -- got
   deriving (Show, Eq)
 
 type ParserStack = Vector.Vector SyntaxTree
@@ -199,7 +200,7 @@ takeOperand = do
 reduceLeft :: Monad m => ParserT m ()
 reduceLeft = do
   takeOperand
-  (notation, operands) <- uses notationStack Vector.head
+  (notation, operands, unconsumedKeywords) <- uses notationStack Vector.head
   let e = mkEnvironment (notation ^. pattern) operands
   let st = subst (notation ^. replacement) e
   notationStack %= Vector.tail
@@ -208,7 +209,7 @@ reduceLeft = do
 reduceGroup :: Monad m => Notation -> ParserT m ()
 reduceGroup notation = do
   ParserState{_notationStack} <- get
-  foreach (Vector.toList _notationStack) $ \(left, arguments) -> do
+  foreach (Vector.toList _notationStack) $ \(left, arguments, unconsumedKeywords) -> do
     case left ^. pattern of
       Outfix _ _ _ ->
         exit
@@ -244,15 +245,15 @@ parse1 = do
         Just notation -> do
           case notation of
             Notation (Prefix _ _ _) _ _ _ -> do
-              notationStack %= Vector.cons (notation, [])
+              notationStack %= Vector.cons (notation, [], Vector.tail (keywordsInPattern (notation ^. pattern)))
               tokens %= Vector.tail
             Notation (Postfix _ [] _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left])
+              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
               parserStack %= Vector.tail
               tokens %= Vector.tail
-              (notation, operands) <- uses notationStack Vector.head
+              (notation, operands, unconsumedKeywords) <- uses notationStack Vector.head
               let e = mkEnvironment (notation ^. pattern) operands
               let st = subst (notation ^. replacement) e
               notationStack %= Vector.tail
@@ -260,11 +261,11 @@ parse1 = do
             Notation (Postfix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left])
+              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
               parserStack %= Vector.tail
               tokens %= Vector.tail
             Notation (Outfix open _ close) _ _ _ -> do
-              notationStack %= Vector.cons (notation, [])
+              notationStack %= Vector.cons (notation, [], Vector.tail (keywordsInPattern (notation ^. pattern)))
               tokens %= Vector.tail
 
               -- for instance, "| x |"
@@ -273,25 +274,23 @@ parse1 = do
             Notation (Infix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left])
+              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
               parserStack %= Vector.tail
               tokens %= Vector.tail
         Nothing -> do
           ParserState{_notationStack} <- get
-          foreach (Vector.toList _notationStack) $ \(notation, arguments) -> do
-            let kws = keywordsInPattern (notation ^. pattern)
-            if Vector.elem kw kws
-              then case Vector.last (Vector.elemIndices kw kws) of
-                i -> do
-                  if
-                    | i - 1 == Vector.length arguments -> do
-                      exit
-                    | countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1 -> do
-                      lift reduceLeft
-                    | otherwise -> do
-                      lift $ parseError $ Unexpected kw
-              else lift reduceLeft
-          (notation, arguments) <- uses notationStack Vector.head
+          foreach (Vector.toList _notationStack) $ \(notation, arguments, unconsumedKeywords) -> do
+            case unconsumedKeywords of
+              [] -> do
+                lift reduceLeft
+              (Vector.head -> expectingKeyword) -> do
+                if kw == expectingKeyword
+                  then do
+                    lift $ notationStack . element 0 . _3 %= Vector.tail
+                    exit
+                  else do
+                    lift $ parseError $ Unexpected expectingKeyword kw
+          (notation, arguments, unconsumedKeywords) <- uses notationStack Vector.head
           if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
             then
               reduceLeft

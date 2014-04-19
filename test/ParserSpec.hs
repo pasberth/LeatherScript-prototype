@@ -118,7 +118,7 @@ main = hspec $ do
       assert "if if a then b else c then if d then e else f else if g then h else i" "(if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))"
 
     it "if a else b then c -> parse error" $ do
-      failure "if a else b then c" (Unexpected "else")
+      failure "if a else b then c" (Unexpected "then" "else")
 
   describe "postfix notations" $ do
     let parse' tokens = runParser (parse tokens) postfixNotations
@@ -192,7 +192,7 @@ main = hspec $ do
     it "(a ? b : c ? d : e) == (?: a b (?: c d e))" $ do
       assert "a ? b : c" "(?: a b c)"
     it "(a and b ? c + d : e + f) == (?: (and a b) (+ c d) (+ e f))" $ do
-      assert "(a and b ? c + d : e + f)" "(?: (and a b) (+ c d) (+ e f))"
+      assert "a and b ? c + d : e + f" "(?: (and a b) (+ c d) (+ e f))"
 
   describe "complex notations" $ do
     let parse' tokens = runParser (parse tokens) complexNotations
