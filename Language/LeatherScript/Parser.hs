@@ -174,12 +174,6 @@ subst (Token v@(Text.uncons -> Just ('$', _))) e = Maybe.fromJust $ HashMap.look
 subst st@(Token _) _ = st
 subst (Preference v) e = Preference (Vector.map (\st -> subst st e) v)
 
-{-variables :: Replacement -> Vector.Vector Variable
-variables (Token (Text.uncons -> Just variable@('$', _))) = Vector.singleton variable
-variables (Token _) = Vector.empty
-variables (Preference v) = Vector.concatMap variables v
--}
-
 parse :: Monad m => Vector.Vector Text.Text -> ParserT m SyntaxTree
 parse _tokens = do
   tokens .= _tokens
@@ -189,12 +183,8 @@ parse _tokens = do
         case _tokens of
           [] -> do
             ParserState{_parserStack, _notationStack} <- get
-            --liftIO $ print _notationStack
-            --liftIO $ print _parserStack
             Vector.forM_ _notationStack $ \_ -> reduceLeft 
             ParserState{_parserStack, _notationStack} <- get
-            --liftIO $ print _notationStack
-            --liftIO $ print _parserStack
             return $ Vector.head _parserStack
           _ -> rec
   rec
