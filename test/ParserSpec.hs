@@ -36,6 +36,23 @@ sexp s = case Text.Trifecta.parseString parser (Text.Trifecta.Delta.Columns 0 0)
       s <- some $ Text.Trifecta.noneOf "() "
       return $ Token $ Text.pack s
 
+prefixNotations :: ParserState
+prefixNotations
+  = emptyParserState
+    & keywords .~ HashSet.fromList ["~", "if", "then", "else"]
+    & notations .~ HashMap.fromList [
+                      ("~", Notation (Prefix "~" [] "$a") (sexp "(~ $a)") RightAssoc 35)
+                    , ("if", Notation (Prefix "if" [Variable "$a", Keyword "then", Variable "$b", Keyword "else"] "$c") (sexp "(if-then-else $a $b $c)") RightAssoc 0)
+                    ]
+
+postfixNotations :: ParserState
+postfixNotations
+  = emptyParserState
+    & keywords .~ HashSet.fromList ["!"]
+    & notations .~ HashMap.fromList [
+                      ("!", Notation (Postfix "$a" [] "!") (sexp "(! $a)") LeftAssoc 80)
+                    ]
+
 infixNotations :: ParserState
 infixNotations
   = emptyParserState
@@ -50,13 +67,18 @@ infixNotations
                     ,   ("or", Notation (Infix "$a" [Keyword "or"] "$b") (sexp "(or $a $b)") RightAssoc 20)
                     ]
 
-prefixNotations :: ParserState
-prefixNotations
+complexNotations :: ParserState
+complexNotations
   = emptyParserState
-    & keywords .~ HashSet.fromList ["~", "if", "then", "else"]
-    & notations .~ HashMap.fromList [
-                      ("~", Notation (Prefix "~" [] "$a") (sexp "(~ $a)") RightAssoc 35)
-                    , ("if", Notation (Prefix "if" [Variable "$a", Keyword "then", Variable "$b", Keyword "else"] "$c") (sexp "(if-then-else $a $b $c)") RightAssoc 0)
+    & keywords .~ HashSet.unions [
+                      prefixNotations ^. keywords
+                    , postfixNotations ^. keywords
+                    , infixNotations ^. keywords
+                    ]
+    & notations .~ HashMap.unions [
+                      prefixNotations ^. notations
+                    , postfixNotations ^. notations
+                    , infixNotations ^. notations
                     ]
 
 main :: IO ()
@@ -78,11 +100,27 @@ main = hspec $ do
     it "if a then b else c == (if-then-else a b c)" $ do
       assert "if a then b else c" "(if-then-else a b c)"
 
+    it "if ~ a then ~ b else ~ c == (if-then-else (~ a) (~ b) (~ c))" $ do
+      assert "if ~ a then ~ b else ~ c" "(if-then-else (~ a) (~ b) (~ c))"
+
     it "if if a then b else c then if d then e else f else if g then h else i == (if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))" $ do
       assert "if if a then b else c then if d then e else f else if g then h else i" "(if-then-else (if-then-else a b c) (if-then-else d e f) (if-then-else g h i))"
 
     it "if a else b then c -> parse error" $ do
       failure "if a else b then c" (Unexpected "else")
+
+  describe "postfix notations" $ do
+    let parse' tokens = runParser (parse tokens) postfixNotations
+    let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+
+    it "a ! == (! a)" $ do
+      assert "a !" "(! a)"
+
+    it "a ! ! == (! (! a))" $ do
+      assert "a ! !" "(!(! a))"
+
+    it "a ! ! ! == (! (! (! a)))" $ do
+      assert "a ! ! !" "(! (! (! a)))"
 
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
@@ -124,3 +162,13 @@ main = hspec $ do
       assert "a or b and c and d" "(or a (and b (and c d)))"
     it "(a and b and c or d) == (or (and a (and b c)) d)" $ do
       assert "a and b and c or d" "(or (and a (and b c)) d)"
+
+  describe "complex notations" $ do
+    let parse' tokens = runParser (parse tokens) complexNotations
+    let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+    it "~ a = b == (~ (= a b))" $ do
+      assert "~ a = b" "(~ (= a b))"
+    it "if a and b then c + d else e + f == (if-then-else (and a b) (+ c d) (+ e f))" $ do
+      assert "if a and b then c + d else e + f" "(if-then-else (and a b) (+ c d) (+ e f))"
+    it "~ a ! + ~ b ! == (~ (+ (! a) (~ (! b))))" $ do
+      assert "~ a ! + ~ b !" "(~ (+ (! a) (~ (! b))))"
