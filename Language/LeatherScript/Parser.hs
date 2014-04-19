@@ -252,6 +252,17 @@ parse1 = do
             Notation (Prefix _ _ _) _ _ _ -> do
               notationStack %= Vector.cons (notation, [])
               tokens %= Vector.tail
+            Notation (Postfix _ [] _) _ _ _ -> do
+              reduceGroup notation
+              left <- uses parserStack Vector.head
+              notationStack %= Vector.cons (notation, [left])
+              parserStack %= Vector.tail
+              tokens %= Vector.tail
+              (notation, operands) <- uses notationStack Vector.head
+              let e = mkEnvironment (notation ^. pattern) operands
+              let st = subst (notation ^. replacement) e
+              notationStack %= Vector.tail
+              parserStack %= Vector.cons st
             Notation (Postfix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
