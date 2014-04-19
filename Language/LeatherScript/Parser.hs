@@ -24,7 +24,6 @@ import qualified Data.Vector                    as Vector
 import qualified Data.HashSet                   as HashSet
 import qualified Data.HashMap.Strict            as HashMap
 import qualified Language.LeatherScript.Types()
-import qualified Debug.Trace
 
 type Variable = Text.Text
 type Keyword = Text.Text
