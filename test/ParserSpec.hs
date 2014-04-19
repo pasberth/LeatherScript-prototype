@@ -64,13 +64,14 @@ outfixNotations
 infixNotations :: ParserState
 infixNotations
   = emptyParserState
-    & keywords .~ HashSet.fromList ["+","-","*","/","=","and","or"]
+    & keywords .~ HashSet.fromList ["+","-","*","/","=","?",":","and","or"]
     & notations .~ HashMap.fromList [
                         ("+", Notation (Infix "$a" [Keyword "+"] "$b") (sexp "(+ $a $b)") LeftAssoc 60)
                     ,   ("-", Notation (Infix "$a" [Keyword "-"] "$b") (sexp "(- $a $b)") LeftAssoc 60)
                     ,   ("*", Notation (Infix "$a" [Keyword "*"] "$b") (sexp "(* $a $b)") LeftAssoc 70)
                     ,   ("/", Notation (Infix "$a" [Keyword "/"] "$b") (sexp "(/ $a $b)") LeftAssoc 70)
                     ,   ("=", Notation (Infix "$a" [Keyword "="] "$b") (sexp "(= $a $b)") NoAssoc 40)
+                    ,   ("?", Notation (Infix "$a" [Keyword "?", Variable "$b", Keyword ":"] "$c") (sexp "(?: $a $b $c)") RightAssoc 10)
                     ,   ("and", Notation (Infix "$a" [Keyword "and"]"$b") (sexp "(and $a $b)") RightAssoc 30)
                     ,   ("or", Notation (Infix "$a" [Keyword "or"] "$b") (sexp "(or $a $b)") RightAssoc 20)
                     ]
@@ -186,6 +187,12 @@ main = hspec $ do
       assert "a or b and c and d" "(or a (and b (and c d)))"
     it "(a and b and c or d) == (or (and a (and b c)) d)" $ do
       assert "a and b and c or d" "(or (and a (and b c)) d)"
+    it "(a ? b : c) == (?: a b c)" $ do
+      assert "a ? b : c" "(?: a b c)"
+    it "(a ? b : c ? d : e) == (?: a b (?: c d e))" $ do
+      assert "a ? b : c" "(?: a b c)"
+    it "(a and b ? c + d : e + f) == (?: (and a b) (+ c d) (+ e f))" $ do
+      assert "(a and b ? c + d : e + f)" "(?: (and a b) (+ c d) (+ e f))"
 
   describe "complex notations" $ do
     let parse' tokens = runParser (parse tokens) complexNotations
