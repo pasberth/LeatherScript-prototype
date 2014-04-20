@@ -64,7 +64,7 @@ data Notation
 type Keywords = HashSet.HashSet Keyword
 type Notations = HashMap.HashMap Keyword Notation
 
-type NotationStackValue = (Notation, Vector.Vector SyntaxTree, Vector.Vector Keyword)
+type NotationStackValue = (Notation, Vector.Vector SyntaxTree, NotationParts)
 type NotationStack = Vector.Vector NotationStackValue
 
 data SyntaxTree
@@ -166,6 +166,12 @@ keywordsInPattern (Postfix _ parts k) = Vector.snoc (keywordsInNotationParts par
 keywordsInPattern (Outfix k1 parts k2) = Vector.cons k1 (Vector.snoc (keywordsInNotationParts parts) k2)
 keywordsInPattern (Infix _ parts _) = keywordsInNotationParts parts
 
+patternAsVector :: Pattern -> NotationParts
+patternAsVector (Prefix x y z) = Vector.cons (Keyword x) (Vector.snoc y (Variable z))
+patternAsVector (Postfix x y z) = Vector.cons (Variable x) (Vector.snoc y (Keyword z))
+patternAsVector (Outfix x y z) = Vector.cons (Keyword x) (Vector.snoc y (Keyword z))
+patternAsVector (Infix x y z) = Vector.cons (Variable x) (Vector.snoc y (Variable z))
+
 mkEnvironment :: Pattern -> Vector.Vector SyntaxTree -> HashMap.HashMap Variable SyntaxTree
 mkEnvironment pattern arguments = do
   let variables = variablesInPattern pattern
@@ -203,19 +209,22 @@ takeOperand = do
     (Vector.head -> operand) -> do
       let newOperands = Vector.snoc operands operand
       notationStack . element 0 . _2 .= newOperands
+      notationStack . element 0 . _3 %= Vector.tail
       parserStack %= Vector.tail
 
 reduce :: Monad m => ParserT m ()
 reduce = do
-  (notation, operands, unconsumedKeywords) <- uses notationStack Vector.head
-  case unconsumedKeywords of
+  (notation, operands, unconsumedParts) <- uses notationStack Vector.head
+  case unconsumedParts of
     [] -> do
       let e = mkEnvironment (notation ^. pattern) operands
       let st = subst (notation ^. replacement) e
       notationStack %= Vector.tail
       parserStack %= Vector.cons st
-    (Vector.head -> expectingKeyword) -> do
+    (Vector.head -> Keyword expectingKeyword) -> do
       parseError $ Expecting expectingKeyword
+    (Vector.head -> Variable expectingKeyword) -> do
+      parseError $ NotEnough
 
 reduceGroup :: Monad m => Notation -> ParserT m ()
 reduceGroup notation = do
@@ -262,12 +271,12 @@ parse1 = do
         Just notation -> do
           case notation of
             Notation (Prefix _ _ _) _ _ _ -> do
-              notationStack %= Vector.cons (notation, [], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              notationStack %= Vector.cons (notation, [], Vector.drop 1 (patternAsVector (notation ^. pattern)))
               tokens %= Vector.tail
             Notation (Postfix _ [] _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              notationStack %= Vector.cons (notation, [left], [])
               parserStack %= Vector.tail
               tokens %= Vector.tail
               (notation, operands, unconsumedKeywords) <- uses notationStack Vector.head
@@ -278,11 +287,11 @@ parse1 = do
             Notation (Postfix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              notationStack %= Vector.cons (notation, [left], Vector.drop 2 (patternAsVector (notation ^. pattern)))
               parserStack %= Vector.tail
               tokens %= Vector.tail
             Notation (Outfix open _ close) _ _ _ -> do
-              notationStack %= Vector.cons (notation, [], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              notationStack %= Vector.cons (notation, [], Vector.drop 1 (patternAsVector (notation ^. pattern)))
               tokens %= Vector.tail
 
               -- for instance, "| x |"
@@ -291,31 +300,34 @@ parse1 = do
             Notation (Infix _ _ _) _ _ _ -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              notationStack %= Vector.cons (notation, [left], Vector.drop 2 (patternAsVector (notation ^. pattern)))
               parserStack %= Vector.tail
               tokens %= Vector.tail
         Nothing -> do
           ParserState{_notationStack} <- get
-          foreach (Vector.toList _notationStack) $ \(notation, arguments, unconsumedKeywords) -> do
-            case unconsumedKeywords of
-              [] -> do
-                lift $ do
-                  takeOperand
-                  reduce
-              (Vector.head -> expectingKeyword) -> do
+          foreach (Vector.toList _notationStack) $ \(notation, arguments, unconsumedParts) -> do
+            case unconsumedParts of
+              [] ->
+                lift $ reduce
+              ((Vector.!? 1) -> Just (Keyword expectingKeyword)) -> do
                 if kw == expectingKeyword
                   then do
-                    lift $ notationStack . element 0 . _3 %= Vector.tail
                     exit
                   else do
                     lift $ parseError $ Unexpected kw
-          (notation, arguments, unconsumedKeywords) <- uses notationStack Vector.head
+              (Vector.head -> Variable _) -> do
+                lift $ do
+                  takeOperand
+                  reduce
+          (notation, arguments, unconsumedParts) <- uses notationStack Vector.head
           if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
             then do
               takeOperand
+              notationStack . element 0 . _3 %= Vector.tail -- drop kw
               reduce
-            else
+            else do
               takeOperand
+              notationStack . element 0 . _3 %= Vector.tail -- drop kw
           case notation ^. pattern of
             Outfix open _ close
               | open == close -> do
@@ -345,7 +357,7 @@ parse1 = do
                 reduceGroup notation
                 left <- uses parserStack Vector.head
                 parserStack %= Vector.tail
-                notationStack %= Vector.cons (notation, [left], [])
+                notationStack %= Vector.cons (notation, [left], Vector.drop 1 (patternAsVector (notation ^. pattern)))
                 tokens %= Vector.tail
 
 emptyParserState :: ParserState
