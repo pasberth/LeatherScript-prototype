@@ -184,7 +184,6 @@ main = hspec $ do
       assert "a = b and c = d" "(and (= a b) (= c d))"
     it "(a = b = c) -> parse error" $ do
       failure "a = b = c" (CantAssoc "=")
-    -- TODO: a = b = c
     it "(a or b and c or d) == (or a (or (and b c) d))" $ do
       assert "a or b and c or d" "(or a (or (and b c) d))"
     it "(a and b or c or d) == (or (and a b) (or c d))" $ do
