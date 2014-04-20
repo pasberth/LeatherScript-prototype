@@ -1,0 +1,35 @@
+{ "name": "Leather Syntax",
+  "scopeName": "source.lthstx",
+  "fileTypes": ["lthstx"],
+  "patterns": [
+    {
+      "match": "Token",
+      "name": "keyword.source.lthstx"
+    },
+    {
+      "match": "Notation",
+      "name": "keyword.source.lthstx"
+    },
+    {
+      "match": "level",
+      "name": "keyword.source.lthstx"
+    },
+    {
+      "match": "no",
+      "name": "keyword.source.lthstx"
+    },
+    {
+      "match": "left",
+      "name": "keyword.source.lthstx"
+    },
+    {
+      "match": "right",
+      "name": "keyword.source.lthstx"
+    },
+    {
+      "match": "associativity",
+      "name": "keyword.source.lthstx"
+    }
+  ],
+  "uuid": "6698ba4c-565f-4f4a-b607-98f7be340dde"
+}

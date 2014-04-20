@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>fileTypes</key>
+	<array>
+		<string>lthstx</string>
+	</array>
+	<key>name</key>
+	<string>Leather Syntax</string>
+	<key>patterns</key>
+	<array>
+		<dict>
+			<key>match</key>
+			<string>Token</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>Notation</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>level</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>no</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>left</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>right</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>associativity</string>
+			<key>name</key>
+			<string>keyword.source.lthstx</string>
+		</dict>
+	</array>
+	<key>scopeName</key>
+	<string>source.lthstx</string>
+	<key>uuid</key>
+	<string>6698ba4c-565f-4f4a-b607-98f7be340dde</string>
+</dict>
+</plist>
