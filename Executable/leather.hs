@@ -16,23 +16,14 @@ import qualified System.FilePath.Posix          as FilePath
 import qualified System.Directory               as Directory
 import qualified System.Environment             as Environment
 
---parse :: Text.Text -> AST.AST
---parse = 
-
 data Option
   = Stx FilePath
-  | Out FilePath
   | Src FilePath
 
 stxfiles :: [Option] -> [FilePath]
 stxfiles (Stx x:xs) = x : stxfiles xs
 stxfiles (x:xs) = stxfiles xs
 stxfiles [] = []
-
-outfile :: [Option] -> FilePath -> FilePath
-outfile [] path = FilePath.replaceExtension path ".js"
-outfile (Out path:_) _ = path
-outfile (_:xs) path = outfile xs path
 
 srcfiles :: [Option] -> [FilePath]
 srcfiles [] = []
@@ -41,7 +32,6 @@ srcfiles (_:xs) = srcfiles xs
 
 parseArgs :: [String] -> [Option]
 parseArgs ("--stx":x:xs) = Stx x : parseArgs xs
-parseArgs ("-o":x:xs) = Out x : parseArgs xs
 parseArgs xs = map Src xs
 
 main :: IO ()
@@ -49,7 +39,6 @@ main = do
   opts <- parseArgs <$> Environment.getArgs
  
   let stx = stxfiles opts
-  let out = outfile opts
   let srcs = srcfiles opts
 
   stxDefs <- mapM SyntaxDef.mkParserFromFile stx
