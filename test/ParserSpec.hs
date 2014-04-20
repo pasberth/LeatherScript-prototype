@@ -143,7 +143,10 @@ main = hspec $ do
   describe "outfix notations" $ do
     let parse' tokens = runParser (parse tokens) outfixNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+    let failure x y = parse' (tokenize x) `shouldBe` Left y
 
+    it "() -> parse error" $ do
+      failure "( )" NotEnough
     it "(a) == a" $ do
       assert "( a )" "a"
     it "((a)) == a" $ do
