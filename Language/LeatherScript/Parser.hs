@@ -77,8 +77,8 @@ instance Show SyntaxTree where
   show (Preference v) = "(" ++ (join $ List.intersperse " " $ Vector.toList $ Vector.map show v) ++ ")"
 
 data ParseError
-  = Unexpected Text.Text -- expecting
-                Text.Text -- got
+  = Expecting Text.Text -- expecting
+  | Unexpected Text.Text -- got
   | CantAssoc Text.Text
   deriving (Show, Eq)
 
@@ -205,10 +205,14 @@ takeOperand = do
 reduce :: Monad m => ParserT m ()
 reduce = do
   (notation, operands, unconsumedKeywords) <- uses notationStack Vector.head
-  let e = mkEnvironment (notation ^. pattern) operands
-  let st = subst (notation ^. replacement) e
-  notationStack %= Vector.tail
-  parserStack %= Vector.cons st
+  case unconsumedKeywords of
+    [] -> do
+      let e = mkEnvironment (notation ^. pattern) operands
+      let st = subst (notation ^. replacement) e
+      notationStack %= Vector.tail
+      parserStack %= Vector.cons st
+    (Vector.head -> expectingKeyword) -> do
+      parseError $ Expecting expectingKeyword
 
 reduceGroup :: Monad m => Notation -> ParserT m ()
 reduceGroup notation = do
@@ -301,7 +305,7 @@ parse1 = do
                     lift $ notationStack . element 0 . _3 %= Vector.tail
                     exit
                   else do
-                    lift $ parseError $ Unexpected expectingKeyword kw
+                    lift $ parseError $ Unexpected kw
           (notation, arguments, unconsumedKeywords) <- uses notationStack Vector.head
           if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
             then do
