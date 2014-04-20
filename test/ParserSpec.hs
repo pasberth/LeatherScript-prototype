@@ -150,6 +150,8 @@ main = hspec $ do
   describe "infix notations" $ do
     let parse' tokens = runParser (parse tokens) infixNotations
     let assert x y = parse' (tokenize x) `shouldBe` Right (sexp y)
+    let failure x y = parse' (tokenize x) `shouldBe` Left y
+
     it "a == a" $ do
       assert "a" "a"
     it "a + b == (+ a b)" $ do
@@ -174,6 +176,8 @@ main = hspec $ do
       assert "x and y and z" "(and x (and y z))"
     it "(a = b and c = d) == (and (= a b) (= c d))" $ do
       assert "a = b and c = d" "(and (= a b) (= c d))"
+    it "(a = b = c) -> parse error" $ do
+      failure "a = b = c" (CantAssoc "=")
     -- TODO: a = b = c
     it "(a or b and c or d) == (or a (or (and b c) d))" $ do
       assert "a or b and c or d" "(or a (or (and b c) d))"

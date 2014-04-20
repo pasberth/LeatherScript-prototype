@@ -79,6 +79,7 @@ instance Show SyntaxTree where
 data ParseError
   = Unexpected Text.Text -- expecting
                 Text.Text -- got
+  | CantAssoc Text.Text
   deriving (Show, Eq)
 
 type ParserStack = Vector.Vector SyntaxTree
@@ -227,7 +228,7 @@ reduceGroup notation = do
                   takeOperand
                   reduce
               | otherwise -> do
-                case (left ^. associativity, left ^. associativity) of
+                case (left ^. associativity, notation ^. associativity) of
                   (LeftAssoc, LeftAssoc) ->
                     lift $ do
                       takeOperand
@@ -235,7 +236,9 @@ reduceGroup notation = do
                   (RightAssoc, RightAssoc) ->
                     exit
                   _ ->
-                    error "I'm sorry. several associativities are pending features."
+                    if Vector.length (keywordsInPattern (notation ^. pattern)) == 0
+                      then lift $ parseError $ CantAssoc ""
+                      else lift $ parseError $ CantAssoc $ Vector.head $ keywordsInPattern $ notation ^. pattern
           | otherwise -> do
             exit
 
