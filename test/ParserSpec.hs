@@ -33,7 +33,7 @@ sexp s = case Text.Trifecta.parseString parser (Text.Trifecta.Delta.Columns 0 0)
       Text.Trifecta.char ')'
       return $ Preference $ Vector.fromList xs
 
-    token = Token . Text.pack <$> some (Text.Trifecta.noneOf "() ")
+    token = (flip Token undefined) . Text.pack <$> some (Text.Trifecta.noneOf "() ")
 
 prefixNotations :: ParserState
 prefixNotations

@@ -68,12 +68,18 @@ type NotationStackValue = (Notation, Vector.Vector SyntaxTree, NotationParts)
 type NotationStack = Vector.Vector NotationStackValue
 
 data SyntaxTree
-  = Token Text.Text
+  = Token Text.Text Int
   | Preference (Vector.Vector SyntaxTree)
-  deriving (Eq)
+
+instance Eq SyntaxTree where
+  (Token tk1 _) == (Token tk2 _) = tk1 == tk2
+  (Preference v1) == (Preference v2)
+    | Vector.length v1 == Vector.length v2 = Vector.all (uncurry (==)) (Vector.zip v1 v2)
+    | otherwise = False
+  _ == _ = False
 
 instance Show SyntaxTree where
-  show (Token txt) = Text.unpack txt
+  show (Token txt _) = Text.unpack txt
   show (Preference v) = "(" ++ (join $ List.intersperse " " $ Vector.toList $ Vector.map show v) ++ ")"
 
 data ParseError
@@ -87,11 +93,12 @@ type ParserStack = Vector.Vector SyntaxTree
 
 data ParserState
   = ParserState
-    { _keywords :: Keywords
+    {_keywords :: Keywords
     , _notations :: Notations
     , _notationStack :: NotationStack
     , _parserStack :: ParserStack
     , _tokens :: Vector.Vector Text.Text
+    , _tokenno :: !Int
     }
 
 newtype ParserT m a
@@ -136,8 +143,8 @@ countVariableInPattern (Infix _ parts _) = countVariableInNotationParts parts + 
 countVariableInPattern (Alias _) = 0
 
 countVariableInReplacement :: Replacement -> Int
-countVariableInReplacement (Token (Text.uncons -> Just ('$', _))) = 1
-countVariableInReplacement (Token _) = 0
+countVariableInReplacement (Token (Text.uncons -> Just ('$', _)) _) = 1
+countVariableInReplacement (Token _ _) = 0
 countVariableInReplacement (Preference v) = Vector.sum (Vector.map countVariableInReplacement v)
 
 variablesInNotationPart :: NotationPart -> Vector.Vector Variable
@@ -178,8 +185,8 @@ mkEnvironment pattern arguments = do
   HashMap.fromList $ Vector.toList $ Vector.zip variables arguments
 
 subst :: Replacement -> HashMap.HashMap Variable SyntaxTree -> SyntaxTree
-subst (Token v@(Text.uncons -> Just ('$', _))) e = Maybe.fromJust $ HashMap.lookup v e
-subst st@(Token _) _ = st
+subst (Token v@(Text.uncons -> Just ('$', _)) _) e = Maybe.fromJust $ HashMap.lookup v e
+subst st@(Token _ _) _ = st
 subst (Preference v) e = Preference (Vector.map (\st -> subst st e) v)
 
 parse :: Monad m => Vector.Vector Text.Text -> ParserT m SyntaxTree
@@ -266,6 +273,7 @@ parse1 = do
       return ()
     | HashSet.member (Vector.head _tokens) _keywords -> do
       let kw = Vector.head _tokens
+      tokenno += 1
       ParserState{_notations} <- get
       case HashMap.lookup kw _notations of
         Just notation -> do
@@ -339,7 +347,9 @@ parse1 = do
           tokens %= Vector.tail
     | otherwise -> do
       tk <- uses tokens Vector.head
-      let st = Token tk
+      i <- use tokenno
+      tokenno += 1
+      let st = Token tk i
 
       uses tokens (Vector.!? 1) >>= \case
         Nothing -> do
@@ -368,4 +378,5 @@ emptyParserState
     , _notationStack = []
     , _parserStack = []
     , _tokens = []
+    , _tokenno = 0
     }
