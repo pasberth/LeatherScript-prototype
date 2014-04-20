@@ -337,19 +337,6 @@ parse1 = do
                 parserStack %= Vector.tail
                 notationStack %= Vector.cons (notation, [left], [])
                 tokens %= Vector.tail
-      {-use parserStack >>= \case 
-        [] -> do
-          parserStack .= Vector.singleton st
-          tokens %= Vector.tail
-        _ -> do
-          uses notations (HashMap.lookup "") >>= \case
-            Nothing -> undefined
-            Just notation -> do
-              reduceGroup notation
-              left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left], [])
-              parserStack %= Vector.tail
---          parserStack %= Vector.cons st-}
 
 emptyParserState :: ParserState
 emptyParserState
