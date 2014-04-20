@@ -19,15 +19,20 @@ data AST
   = Identifier Text.Text Location
   | Abstraction AST AST
   | Application AST AST
+  | Conditional AST AST AST
   deriving (Show)
 
 fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
 fromSyntaxTree tokens (Parser.Token ident i) = do
   let tk = (Vector.!) tokens i
   Identifier ident (Location (Tokenizer.lineno tk, Tokenizer.columnno tk))
-fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@lambda" _))
+fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@LAMBDA" _))
   = case (fromSyntaxTree tokens <$> (Vector.!?) v 1, fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
     (Just x, Just y) -> Abstraction x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@CONDITIONAL" _))
+  = case (fromSyntaxTree tokens <$> (Vector.!?) v 1, fromSyntaxTree tokens <$> ((Vector.!?) v 2), fromSyntaxTree tokens <$> ((Vector.!?) v 3)) of
+    (Just x, Just y, Just z) -> Conditional x y z
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
@@ -68,4 +73,11 @@ instance Aeson.ToJSON AST where
           "type" Aeson..= ("Application" :: Text.Text)
         , "left" Aeson..= left
         , "right" Aeson..= right
+        ]
+  toJSON (Conditional test alternate consequent)
+    = Aeson.object [
+          "type" Aeson..= ("Conditional" :: Text.Text)
+        , "test" Aeson..= test
+        , "alternate" Aeson..= alternate
+        , "consequent" Aeson..= consequent
         ]

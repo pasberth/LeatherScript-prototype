@@ -10,11 +10,13 @@ data JavaScriptAST
   = Identifier Text.Text
   | Function JavaScriptAST JavaScriptAST
   | Call JavaScriptAST JavaScriptAST
+  | Conditional JavaScriptAST JavaScriptAST JavaScriptAST
 
 fromAST :: AST.AST -> JavaScriptAST
 fromAST (AST.Identifier ident _) = Identifier ident
 fromAST (AST.Application x y) = Call (fromAST x) (fromAST y)
 fromAST (AST.Abstraction x y) = Function (fromAST x) (fromAST y)
+fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z)
 
 instance Aeson.ToJSON JavaScriptAST where
   toJSON (Identifier ident)
@@ -42,3 +44,10 @@ instance Aeson.ToJSON JavaScriptAST where
         , "callee" Aeson..= x
         , "arguments" Aeson..= [y]
         ]
+  toJSON (Conditional x y z)
+    = Aeson.object [
+          "type" Aeson..= ("ConditionalExpression" :: Text.Text)
+        , "test" Aeson..= x
+        , "alternate" Aeson..= y
+        , "consequent" Aeson..= z
+      ]

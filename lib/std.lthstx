@@ -1,7 +1,8 @@
 Token "("
 Token ")"
 Notation "($a)" := "$a" level 200 no associativity
-Notation "fn $a -> $b" := "@lambda $a $b" level 1 right associativity
+Notation "lambda $a -> $b end" := "@LAMBDA $a $b" level 0 right associativity
+Notation "if $a then $b else $c end" := "@CONDITIONAL $a $b $c" level 0 right associativity
 Notation "$a $b" := "$a $b" level 200 left associativity
 Notation "$a + $b" := "add $a $b" level 60 left associativity
 Notation "$a - $b" := "sub $a $b" level 60 left associativity
