@@ -183,7 +183,7 @@ parse _tokens = do
         case _tokens of
           [] -> do
             ParserState{_parserStack, _notationStack} <- get
-            Vector.forM_ _notationStack $ \_ -> reduceLeft 
+            Vector.forM_ _notationStack $ \_ -> takeOperand >> reduce
             ParserState{_parserStack, _notationStack} <- get
             return $ Vector.head _parserStack
           _ -> rec
@@ -197,9 +197,8 @@ takeOperand = do
   notationStack . element 0 . _2 .= newOperands
   parserStack %= Vector.tail
 
-reduceLeft :: Monad m => ParserT m ()
-reduceLeft = do
-  takeOperand
+reduce :: Monad m => ParserT m ()
+reduce = do
   (notation, operands, unconsumedKeywords) <- uses notationStack Vector.head
   let e = mkEnvironment (notation ^. pattern) operands
   let st = subst (notation ^. replacement) e
@@ -220,11 +219,15 @@ reduceGroup notation = do
               | (left ^. level) < (notation ^. level) -> do
                 exit
               | (left ^. level) > (notation ^. level) -> do
-                lift reduceLeft
+                lift $ do
+                  takeOperand
+                  reduce
               | otherwise -> do
                 case (left ^. associativity, left ^. associativity) of
                   (LeftAssoc, LeftAssoc) ->
-                    lift reduceLeft
+                    lift $ do
+                      takeOperand
+                      reduce
                   (RightAssoc, RightAssoc) ->
                     exit
                   _ ->
@@ -282,7 +285,9 @@ parse1 = do
           foreach (Vector.toList _notationStack) $ \(notation, arguments, unconsumedKeywords) -> do
             case unconsumedKeywords of
               [] -> do
-                lift reduceLeft
+                lift $ do
+                  takeOperand
+                  reduce
               (Vector.head -> expectingKeyword) -> do
                 if kw == expectingKeyword
                   then do
@@ -292,8 +297,9 @@ parse1 = do
                     lift $ parseError $ Unexpected expectingKeyword kw
           (notation, arguments, unconsumedKeywords) <- uses notationStack Vector.head
           if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
-            then
-              reduceLeft
+            then do
+              takeOperand
+              reduce
             else
               takeOperand
           case notation ^. pattern of
@@ -319,7 +325,7 @@ parse1 = do
             Just notation -> do
               reduceGroup notation
               left <- uses parserStack Vector.head
-              notationStack %= Vector.cons (notation, [left], Vector.tail (keywordsInPattern (notation ^. pattern)))
+              notationStack %= Vector.cons (notation, [left], [])
               parserStack %= Vector.tail
 --          parserStack %= Vector.cons st
 
