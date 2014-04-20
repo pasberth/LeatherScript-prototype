@@ -20,6 +20,8 @@ data AST
   | Abstraction AST AST
   | Application AST AST
   | Conditional AST AST AST
+  | Assign AST AST
+  | Sequence AST AST
   deriving (Show)
 
 fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
@@ -34,6 +36,15 @@ fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@CONDIT
   = case (fromSyntaxTree tokens <$> (Vector.!?) v 1, fromSyntaxTree tokens <$> ((Vector.!?) v 2), fromSyntaxTree tokens <$> ((Vector.!?) v 3)) of
     (Just x, Just y, Just z) -> Conditional x y z
     _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@ASSIGN" _))
+  = case (fromSyntaxTree tokens <$> (Vector.!?) v 1, fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Assign x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@SEQUENCE" _))
+  = case (fromSyntaxTree tokens <$> (Vector.!?) v 1, fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Sequence x y
+    _ -> reduceST tokens v
+
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
   -- Vector.foldl1 Application (Vector.map (fromSyntaxTree tokens) v)
@@ -80,4 +91,16 @@ instance Aeson.ToJSON AST where
         , "test" Aeson..= test
         , "alternate" Aeson..= alternate
         , "consequent" Aeson..= consequent
+        ]
+  toJSON (Assign left right)
+    = Aeson.object [
+          "type" Aeson..= ("Assign" :: Text.Text)
+        , "left" Aeson..= left
+        , "right" Aeson..= right
+        ]
+  toJSON (Sequence left right)
+    = Aeson.object [
+          "type" Aeson..= ("Sequence" :: Text.Text)
+        , "left" Aeson..= left
+        , "right" Aeson..= right
         ]
