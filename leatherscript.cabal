@@ -36,7 +36,8 @@ library
     Language.LeatherScript.Tokenizer,
     Language.LeatherScript.Parser,
     Language.LeatherScript.SyntaxDef,
-    Language.LeatherScript.AST
+    Language.LeatherScript.AST,
+    Language.LeatherScript.Generator
 
 test-suite test-parser
   type:

@@ -10,6 +10,7 @@ import qualified Data.Aeson                     as Aeson
 import qualified Language.LeatherScript.Tokenizer as Tokenizer
 import qualified Language.LeatherScript.Parser  as Parser
 import qualified Language.LeatherScript.AST     as AST
+import qualified Language.LeatherScript.Generator as Generator
 import qualified Language.LeatherScript.SyntaxDef as SyntaxDef
 import qualified System.FilePath.Posix          as FilePath
 import qualified System.Directory               as Directory
@@ -65,4 +66,6 @@ main = do
         let json = Aeson.encode ast
 
         let lth_json = FilePath.replaceExtension src "lth.json"
+        let js_json = FilePath.replaceExtension src "js.json"
         writeFile lth_json (ByteString.toString json)
+        writeFile js_json (ByteString.toString (Aeson.encode (Generator.fromAST ast)))
