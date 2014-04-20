@@ -30,11 +30,13 @@ library
     , unordered-containers
     , vector
     , aeson
+    , trifecta
   exposed-modules:
     Language.LeatherScript,
     Language.LeatherScript.Types,
     Language.LeatherScript.Tokenizer,
-    Language.LeatherScript.Parser
+    Language.LeatherScript.Parser,
+    Language.LeatherScript.SyntaxDef
 
 test-suite test-parser
   type:

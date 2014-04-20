@@ -5,6 +5,7 @@
 
 module Language.LeatherScript.Tokenizer where
 
+import           Control.Arrow
 import           Control.Applicative
 import           Control.Monad.Identity
 import           Control.Monad.Reader
@@ -72,3 +73,8 @@ tokenize text = go text 1 1 where
         return $ Vector.cons (Token tk lineno columnno) tks
       Nothing -> do
         return []
+
+tokenizeIgnoreSpaces :: Text.Text -> Tokenizer (Vector.Vector Token)
+tokenizeIgnoreSpaces = tokenize >>>
+  fmap (Vector.filter (\case
+                    Token tk _ _ -> not $ Char.isSpace $ Text.head tk))

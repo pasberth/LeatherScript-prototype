@@ -173,6 +173,25 @@ keywordsInPattern (Postfix _ parts k) = Vector.snoc (keywordsInNotationParts par
 keywordsInPattern (Outfix k1 parts k2) = Vector.cons k1 (Vector.snoc (keywordsInNotationParts parts) k2)
 keywordsInPattern (Infix _ parts _) = keywordsInNotationParts parts
 
+patternFromVector :: Vector.Vector Text.Text -> Pattern
+patternFromVector v = do
+    let w = Vector.map convert v
+    case Vector.length w of
+      0 -> error "oh!"
+      1 -> case Vector.head w of
+            Keyword k -> Alias k
+            _ -> error "you cannot define a variable pattern"
+      _ -> do
+        let u = Vector.init (Vector.tail w)
+        case (Vector.head w, Vector.last w) of
+          (Keyword x, Variable y) -> Prefix x u y
+          (Variable x, Keyword y) -> Postfix x u y
+          (Keyword x, Keyword y) -> Outfix x u y
+          (Variable x, Variable y) -> Infix x u y
+  where
+    convert variable@(Text.uncons -> Just ('$', _)) = Variable variable
+    convert keyword = Keyword keyword
+
 patternAsVector :: Pattern -> NotationParts
 patternAsVector (Prefix x y z) = Vector.cons (Keyword x) (Vector.snoc y (Variable z))
 patternAsVector (Postfix x y z) = Vector.cons (Variable x) (Vector.snoc y (Keyword z))
@@ -200,7 +219,9 @@ parse _tokens = do
             ParserState{_notationStack} <- get
             Vector.forM_ _notationStack $ \_ -> takeOperand >> reduce
             uses notations (HashMap.lookup "") >>= \case
-              Nothing -> uses parserStack Vector.head
+              Nothing -> uses parserStack Vector.reverse <&> \case
+                [x] -> x
+                xs -> Preference xs
               Just notation -> do
                 use parserStack <&> Vector.foldl1 (\x f -> do
                   let e = mkEnvironment (notation ^. pattern) [f, x]
@@ -361,7 +382,9 @@ parse1 = do
             tokens %= Vector.tail
           | otherwise -> do
             uses notations (HashMap.lookup "") >>= \case
-              Nothing -> undefined
+              Nothing -> do
+                parserStack %= Vector.cons st
+                tokens %= Vector.tail
               Just notation -> do
                 parserStack %= Vector.cons st
                 reduceGroup notation
