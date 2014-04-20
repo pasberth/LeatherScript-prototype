@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE OverloadedLists            #-}
+{-# LANGUAGE ViewPatterns               #-}
 
 module Language.LeatherScript.AST where
 
+import           Control.Applicative
 import qualified Data.Text                      as Text
 import qualified Data.Vector                    as Vector
 import qualified Data.Aeson                     as Aeson
@@ -15,7 +17,7 @@ newtype Location = Location (Int, Int)
 
 data AST
   = Identifier Text.Text Location
-  | Abstraction Text.Text AST
+  | Abstraction AST AST
   | Application AST AST
   deriving (Show)
 
@@ -23,9 +25,15 @@ fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
 fromSyntaxTree tokens (Parser.Token ident i) = do
   let tk = (Vector.!) tokens i
   Identifier ident (Location (Tokenizer.lineno tk, Tokenizer.columnno tk))
-fromSyntaxTree tokens (Parser.Preference v) = do
+fromSyntaxTree tokens (Parser.Preference v@(Vector.head -> Parser.Token "@lambda" _))
+  = case (fromSyntaxTree tokens <$> (Vector.!?) v 1, fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Abstraction x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
   -- Vector.foldl1 Application (Vector.map (fromSyntaxTree tokens) v)
+reduceST :: Vector.Vector Tokenizer.Token -> Vector.Vector Parser.SyntaxTree -> AST
+reduceST tokens v = do
     let f x ys = case ys of
                     [] -> x
                     _ -> do
