@@ -29,8 +29,11 @@ library
     , text
     , unordered-containers
     , vector
+    , aeson
   exposed-modules:
+    Language.LeatherScript,
     Language.LeatherScript.Types,
+    Language.LeatherScript.Tokenizer,
     Language.LeatherScript.Parser
 
 test-suite test-parser

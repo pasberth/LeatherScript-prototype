@@ -83,8 +83,8 @@ instance Show SyntaxTree where
   show (Preference v) = "(" ++ (join $ List.intersperse " " $ Vector.toList $ Vector.map show v) ++ ")"
 
 data ParseError
-  = Expecting Text.Text -- expecting
-  | Unexpected Text.Text -- got
+  = Expecting Text.Text
+  | Unexpected Text.Text
   | CantAssoc Text.Text
   | NotEnough
   deriving (Show, Eq)
