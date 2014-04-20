@@ -182,10 +182,14 @@ parse _tokens = do
         ParserState{_tokens} <- get
         case _tokens of
           [] -> do
-            ParserState{_parserStack, _notationStack} <- get
+            ParserState{_notationStack} <- get
             Vector.forM_ _notationStack $ \_ -> takeOperand >> reduce
-            ParserState{_parserStack, _notationStack} <- get
-            return $ Vector.head _parserStack
+            uses notations (HashMap.lookup "") >>= \case
+              Nothing -> uses parserStack Vector.head
+              Just notation -> do
+                use parserStack <&> Vector.foldl1 (\x f -> do
+                  let e = mkEnvironment (notation ^. pattern) [f, x]
+                  subst (notation ^. replacement) e)
           _ -> rec
   rec
 
@@ -315,7 +319,25 @@ parse1 = do
       tk <- uses tokens Vector.head
       let st = Token tk
 
-      use parserStack >>= \case 
+      uses tokens (Vector.!? 1) >>= \case
+        Nothing -> do
+          parserStack %= Vector.cons st
+          tokens %= Vector.tail
+        Just tk
+          | HashSet.member tk _keywords -> do
+            parserStack %= Vector.cons st
+            tokens %= Vector.tail
+          | otherwise -> do
+            uses notations (HashMap.lookup "") >>= \case
+              Nothing -> undefined
+              Just notation -> do
+                parserStack %= Vector.cons st
+                reduceGroup notation
+                left <- uses parserStack Vector.head
+                parserStack %= Vector.tail
+                notationStack %= Vector.cons (notation, [left], [])
+                tokens %= Vector.tail
+      {-use parserStack >>= \case 
         [] -> do
           parserStack .= Vector.singleton st
           tokens %= Vector.tail
@@ -327,7 +349,7 @@ parse1 = do
               left <- uses parserStack Vector.head
               notationStack %= Vector.cons (notation, [left], [])
               parserStack %= Vector.tail
---          parserStack %= Vector.cons st
+--          parserStack %= Vector.cons st-}
 
 emptyParserState :: ParserState
 emptyParserState
