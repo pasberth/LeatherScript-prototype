@@ -121,6 +121,9 @@ main = hspec $ do
     it "if a then b -> parse error" $ do
       failure "if a then b" (Expecting "else")
 
+    it "if a then b -> parse error" $ do
+      failure "if a then b else " NotEnough
+
     it "if a else b then c -> parse error" $ do
       failure "if a else b then c" (Unexpected "else")
 

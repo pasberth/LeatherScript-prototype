@@ -80,6 +80,7 @@ data ParseError
   = Expecting Text.Text -- expecting
   | Unexpected Text.Text -- got
   | CantAssoc Text.Text
+  | NotEnough
   deriving (Show, Eq)
 
 type ParserStack = Vector.Vector SyntaxTree
@@ -197,10 +198,12 @@ parse _tokens = do
 takeOperand :: Monad m => ParserT m ()
 takeOperand = do
   operands <- use (notationStack . element 0 . _2)
-  operand <- uses parserStack Vector.head
-  let newOperands = Vector.snoc operands operand
-  notationStack . element 0 . _2 .= newOperands
-  parserStack %= Vector.tail
+  use parserStack >>= \case
+    [] -> parseError NotEnough
+    (Vector.head -> operand) -> do
+      let newOperands = Vector.snoc operands operand
+      notationStack . element 0 . _2 .= newOperands
+      parserStack %= Vector.tail
 
 reduce :: Monad m => ParserT m ()
 reduce = do
