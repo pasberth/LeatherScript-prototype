@@ -63,7 +63,7 @@ mkParserFromFile path = do
               let notation = Notation pattern replacement assoc level
               let kws = keywordsInPattern pattern
               let kw = if Vector.length kws == 0 then Text.pack "" else Vector.head kws
-              let newSxDef = second (HashMap.insert kw notation) sxDef
+              let newSxDef = (HashSet.union (HashSet.fromList (Vector.toList kws)) (fst sxDef), HashMap.insert kw notation (snd sxDef))
               IORef.writeIORef syntaxs newSxDef
       tkDef <- IORef.readIORef tokenDef
       sxDef <- IORef.readIORef syntaxs

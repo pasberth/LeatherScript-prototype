@@ -32,11 +32,11 @@ library
     , aeson
     , trifecta
   exposed-modules:
-    Language.LeatherScript,
     Language.LeatherScript.Types,
     Language.LeatherScript.Tokenizer,
     Language.LeatherScript.Parser,
-    Language.LeatherScript.SyntaxDef
+    Language.LeatherScript.SyntaxDef,
+    Language.LeatherScript.AST
 
 test-suite test-parser
   type:
@@ -54,3 +54,20 @@ test-suite test-parser
     , trifecta
     , leatherscript
     , hspec
+
+executable leather
+  hs-source-dirs:
+    Executable
+  main-is:
+    leather.hs
+  build-depends:
+      base
+    , mtl
+    , utf8-string
+    , text
+    , unordered-containers
+    , vector
+    , aeson
+    , leatherscript
+    , filepath
+    , directory
