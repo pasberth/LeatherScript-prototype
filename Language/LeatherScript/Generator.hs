@@ -8,8 +8,8 @@ import qualified Language.LeatherScript.AST     as AST
 
 data JavaScriptAST
   = Identifier Text.Text
-  | Function JavaScriptAST JavaScriptAST
-  | Call JavaScriptAST JavaScriptAST
+  | Function [JavaScriptAST] JavaScriptAST
+  | Call JavaScriptAST [JavaScriptAST]
   | Conditional JavaScriptAST JavaScriptAST JavaScriptAST
   | Assign JavaScriptAST JavaScriptAST
   | Sequence JavaScriptAST JavaScriptAST
@@ -29,8 +29,12 @@ data JavaScriptAST
 
 fromAST :: AST.AST -> JavaScriptAST
 fromAST (AST.Identifier ident _) = Identifier ident
-fromAST (AST.Application x y) = Call (fromAST x) (fromAST y)
-fromAST (AST.Abstraction x y) = Function (fromAST x) (fromAST y)
+fromAST (AST.Application x y) = Call (fromAST x) (mkArgs y) where
+  mkArgs (AST.OrderedPair x y) = fromAST x : mkArgs y
+  mkArgs x = [fromAST x]
+fromAST (AST.Abstraction x y) = Function (mkParams x) (fromAST y) where
+  mkParams (AST.OrderedPair x y) = fromAST x : mkParams y
+  mkParams x = [fromAST x]
 fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z)
 fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
 fromAST (AST.Sequence x y) = Sequence (fromAST x) (fromAST y)
@@ -62,7 +66,7 @@ mkTest (AST.Variant x y) ident = do
   test2
 mkTest (AST.OrderedPair x y@(AST.OrderedPair _ _)) it = do
   let test1 = mkTest x (Member it (IntLit 0))
-  let test2 = mkTest y (Call (Member it (Identifier "slice")) (IntLit 1))
+  let test2 = mkTest y (Call (Member it (Identifier "slice")) [(IntLit 1)])
   And test1 test2
 mkTest (AST.OrderedPair x y) it = do
   let test1 = mkTest x (Member it (IntLit 0))
@@ -82,10 +86,10 @@ instance Aeson.ToJSON JavaScriptAST where
           "type" Aeson..= ("Identifier" :: Text.Text)
         , "name" Aeson..= ident
         ]
-  toJSON (Function x y)
+  toJSON (Function xs y)
     = Aeson.object [
           "type" Aeson..= ("FunctionExpression" :: Text.Text)
-        , "params" Aeson..= [x]
+        , "params" Aeson..= xs
         , "body" Aeson..=
             Aeson.object [
                 "type" Aeson..= ("BlockStatement" :: Text.Text)
@@ -100,7 +104,7 @@ instance Aeson.ToJSON JavaScriptAST where
     = Aeson.object [
           "type" Aeson..= ("CallExpression" :: Text.Text)
         , "callee" Aeson..= x
-        , "arguments" Aeson..= [y]
+        , "arguments" Aeson..= y
         ]
   toJSON (Conditional x y z)
     = Aeson.object [

@@ -1,7 +1,7 @@
-addition := ^x -> ^y -> x @add y;
-subtraction := ^x -> ^y -> x @sub y;
-multiplication := ^x -> ^y -> x @mul y;
-division := ^x -> ^y -> x @div y;
+addition := ^x , y -> x @add y;
+subtraction := ^x , y -> x @sub y;
+multiplication := ^x , y -> x @mul y;
+division := ^x , y -> x @div y;
 
 a + b * c + d;
 a , b , c , d

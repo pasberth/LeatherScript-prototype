@@ -2,6 +2,7 @@ Token "("
 Token ")"
 Token ";"
 Token "."
+Token ","
 Token "^"
 Token "`"
 Notation "($a)" := "$a" level 200 no associativity
@@ -26,9 +27,9 @@ Notation "$a $b" := "$a $b" level 190 left associativity
 Notation "$a <| $b" := "$a $b" level 5 right associativity
 Notation "$a |> $b" := "$b $a" level 5 left associativity
 Notation "! $a" := "not $a" level 40 right associativity
-Notation "$a && $b" := "and $a $b" level 30 right associativity
-Notation "$a || $b" := "or $a $b" level 20 right associativity
-Notation "$a + $b" := "addition $a $b" level 60 left associativity
-Notation "$a - $b" := "subtraction $a $b" level 60 left associativity
-Notation "$a * $b" := "multiplication $a $b" level 70 left associativity
-Notation "$a / $b" := "division $a $b" level 70 left associativity
+Notation "$a && $b" := "and($a, $b)" level 30 right associativity
+Notation "$a || $b" := "or($a, $b)" level 20 right associativity
+Notation "$a + $b" := "addition($a, $b)" level 60 left associativity
+Notation "$a - $b" := "subtraction($a, $b)" level 60 left associativity
+Notation "$a * $b" := "multiplication($a, $b)" level 70 left associativity
+Notation "$a / $b" := "division($a, $b)" level 70 left associativity
