@@ -14,6 +14,7 @@ data JavaScriptAST
   | Assign JavaScriptAST JavaScriptAST
   | Sequence JavaScriptAST JavaScriptAST
   | Member JavaScriptAST JavaScriptAST
+  | Variant JavaScriptAST JavaScriptAST
   | StrLit Text.Text
 
 fromAST :: AST.AST -> JavaScriptAST
@@ -24,6 +25,7 @@ fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z
 fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
 fromAST (AST.Sequence x y) = Sequence (fromAST x) (fromAST y)
 fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
+fromAST (AST.Variant x y) = Variant (fromAST x) (fromAST y)
 fromAST (AST.StrLit s) = StrLit s
 
 instance Aeson.ToJSON JavaScriptAST where
@@ -75,6 +77,15 @@ instance Aeson.ToJSON JavaScriptAST where
           "type" Aeson..= ("MemberExpression" :: Text.Text)
         , "object" Aeson..= x
         , "property" Aeson..= y]
+  toJSON (Variant x y)
+    = Aeson.object [ "type" Aeson..= ("ObjectExpression" :: Text.Text)
+                   , "properties" Aeson..= [Aeson.object
+                     [ "type" Aeson..= ("Property" :: Text.Text)
+                     , "key" Aeson..= x
+                     , "value" Aeson..= y
+                     , "kind" Aeson..= ("init" :: Text.Text)
+                     ]]
+                   ]
   toJSON (StrLit s)
     = Aeson.object [ "type" Aeson..= ("Literal" :: Text.Text)
                    , "value" Aeson..= s

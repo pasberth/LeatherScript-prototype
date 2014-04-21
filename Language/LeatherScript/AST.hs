@@ -23,6 +23,7 @@ data AST
   | Assign AST AST
   | Sequence AST AST
   | Member AST AST
+  | Variant AST AST
   | StrLit Text.Text
   deriving (Show)
 
@@ -67,6 +68,12 @@ fromSyntaxTree tokens (Parser.Preference
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
          , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
     (Just x, Just y) -> Member x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                       v@(Vector.head -> Parser.Token "@VARIANT" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Variant x y
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
@@ -133,6 +140,11 @@ instance Aeson.ToJSON AST where
         , "left" Aeson..= left
         , "right" Aeson..= right
         ]
+  toJSON (Variant tag value)
+    = Aeson.object [ "type" Aeson..= ("Variant" :: Text.Text)
+                   , "tag" Aeson..= tag
+                   , "value" Aeson..= value
+                   ]
   toJSON (StrLit s)
     = Aeson.object [ "type" Aeson..= ("String" :: Text.Text)
                    , "value" Aeson..= s
