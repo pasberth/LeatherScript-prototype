@@ -42,6 +42,10 @@ mkTest (AST.Variant x y) ident = do
   let test1 = Member ident (fromAST x)
   let test2 = mkTest y test1
   test2
+mkTest (AST.UnorderedPair x y) it = do
+  let test1 = mkTest x it
+  let test2 = mkTest y it
+  And test1 test2
 mkTest (AST.Identifier x _) ident = Assign (Identifier x) ident
 mkTest (AST.StrLit s) ident = Eq ident (StrLit s)
 
