@@ -14,6 +14,7 @@ data JavaScriptAST
   | Assign JavaScriptAST JavaScriptAST
   | Sequence JavaScriptAST JavaScriptAST
   | Member JavaScriptAST JavaScriptAST
+  | StrLit Text.Text
 
 fromAST :: AST.AST -> JavaScriptAST
 fromAST (AST.Identifier ident _) = Identifier ident
@@ -23,6 +24,7 @@ fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z
 fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
 fromAST (AST.Sequence x y) = Sequence (fromAST x) (fromAST y)
 fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
+fromAST (AST.StrLit s) = StrLit s
 
 instance Aeson.ToJSON JavaScriptAST where
   toJSON (Identifier ident)
@@ -73,3 +75,7 @@ instance Aeson.ToJSON JavaScriptAST where
           "type" Aeson..= ("MemberExpression" :: Text.Text)
         , "object" Aeson..= x
         , "property" Aeson..= y]
+  toJSON (StrLit s)
+    = Aeson.object [ "type" Aeson..= ("Literal" :: Text.Text)
+                   , "value" Aeson..= s
+                   ]

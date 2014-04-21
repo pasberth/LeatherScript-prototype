@@ -23,9 +23,17 @@ data AST
   | Assign AST AST
   | Sequence AST AST
   | Member AST AST
+  | StrLit Text.Text
   deriving (Show)
 
 fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
+fromSyntaxTree tokens (Parser.Token txt@(Text.head -> '"') _) = do
+  let str = unescape $ Text.tail (Text.init txt)
+  StrLit str where
+    unescape "" = ""
+    unescape x = case Text.head x of
+                   '\\' -> Text.cons (Text.head (Text.tail x)) $ unescape (Text.tail (Text.tail x))
+                   _ -> Text.cons (Text.head x) (unescape (Text.tail x))
 fromSyntaxTree tokens (Parser.Token ident i) = do
   let tk = (Vector.!) tokens i
   Identifier ident (Location (Tokenizer.lineno tk, Tokenizer.columnno tk))
@@ -125,3 +133,7 @@ instance Aeson.ToJSON AST where
         , "left" Aeson..= left
         , "right" Aeson..= right
         ]
+  toJSON (StrLit s)
+    = Aeson.object [ "type" Aeson..= ("String" :: Text.Text)
+                   , "value" Aeson..= s
+                   ]

@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE OverloadedLists            #-}
+{-# LANGUAGE ViewPatterns               #-}
 {-# LANGUAGE LambdaCase                 #-}
 
 module Language.LeatherScript.Tokenizer where
@@ -49,16 +50,32 @@ token :: Text.Text -> Tokenizer (Maybe (Text.Text, Text.Text))
 token "" = return Nothing
 token text
   | Char.isSpace $ Text.head text = return $ Just $ Text.span Char.isSpace text
+  | '"' == Text.head text = return $ str text
   | otherwise = do
       tokenDef <- ask
       case Vector.foldr (\def result -> result <|> (if Text.isPrefixOf def text then Just def else Nothing)) Nothing tokenDef of
         Just tk -> return $ Just (tk, Text.drop (Text.length tk) text)
         Nothing -> do
           let rec ""    = 0
-              rec text1 = if Char.isSpace (Text.head text1) || Vector.any (\def -> Text.isPrefixOf def text1) tokenDef
+              rec text1 = if Char.isSpace (Text.head text1) || Text.head text1 == '"' || Vector.any (\def -> Text.isPrefixOf def text1) tokenDef
                             then 0
                             else 1 + rec (Text.tail text1)
           return $ Just $ Text.splitAt (rec text) text
+
+str :: Text.Text -> Maybe (Text.Text, Text.Text)
+str (Text.uncons -> Just ('"', xs))
+  = let xs' = takeS xs
+    in (\(x,y) -> (Text.cons '"' x, y)) <$> xs' where
+      takeS (Text.uncons -> Just ('\\', Text.uncons -> Just (ch, txt)))
+        = (\(x,y) -> (Text.cons '\\' $ Text.cons ch x, y)) <$> takeS txt
+      takeS (Text.uncons -> Just ('"', txt))
+        = Just $ ("\"", txt)
+      takeS (Text.uncons -> Just (ch, txt))
+        = (\(x,y) -> (Text.cons ch x, y)) <$> takeS txt
+      takeS ""
+        = Nothing
+
+str _ = Nothing
 
 tokenize :: Text.Text -> Tokenizer (Vector.Vector Token)
 tokenize text = go text 1 1 where
