@@ -25,6 +25,7 @@ data AST
   | Member AST AST
   | Variant AST AST
   | UnorderedPair AST AST
+  | Match AST [(AST, AST)]
   | StrLit Text.Text
   deriving (Show)
 
@@ -77,10 +78,24 @@ fromSyntaxTree tokens (Parser.Preference
     (Just x, Just y) -> Variant x y
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference
-                       v@(Vector.head -> Parser.Token "@UNORDERED-PAIR" _))
+                        v@(Vector.head -> Parser.Token "@UNORDERED-PAIR" _))
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
          , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
     (Just x, Just y) -> UnorderedPair x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                       v@(Vector.head -> Parser.Token "@MATCH" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 3)) of
+    (Just x, Just y, Just z) -> Match x [(y, z)]
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                       v@(Vector.head -> Parser.Token "@CASE" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 3)) of
+    (Just (Match x yzs), Just y, Just z) -> Match x (yzs ++ [(y,z)])
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
@@ -122,7 +137,7 @@ instance Aeson.ToJSON AST where
         , "left" Aeson..= left
         , "right" Aeson..= right
         ]
-  toJSON (Conditional test alternate consequent)
+  toJSON (Conditional test consequent alternate)
     = Aeson.object [
           "type" Aeson..= ("Conditional" :: Text.Text)
         , "test" Aeson..= test
@@ -157,7 +172,12 @@ instance Aeson.ToJSON AST where
                    , "left" Aeson..= left
                    , "right" Aeson..= right
                    ]
-  toJSON (StrLit s)
+  toJSON (Match x yzs)
+    = Aeson.object [ "type" Aeson..= ("Match" :: Text.Text)
+                   , "object" Aeson..= x
+                   , "patterns" Aeson..= map (\(y,z) -> Aeson.object [ "left" Aeson..= y, "right" Aeson..= z ]) yzs
+                   ]
+  toJSON (StrLit s )
     = Aeson.object [ "type" Aeson..= ("String" :: Text.Text)
                    , "value" Aeson..= s
                    ]
