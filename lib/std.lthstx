@@ -1,12 +1,14 @@
 Token "("
 Token ")"
 Token ";"
+Token "."
 Notation "($a)" := "$a" level 200 no associativity
 Notation "lambda $a -> $b end" := "@LAMBDA $a $b" level 0 right associativity
 Notation "if $a then $b else $c end" := "@CONDITIONAL $a $b $c" level 0 right associativity
 Notation "$a ; $b" := "@SEQUENCE $a $b" level 0 right associativity
 Notation "$a := $b" := "@ASSIGN $a $b" level 5 right associativity
-Notation "$a $b" := "$a $b" level 200 left associativity
+Notation "$a . $b" := "@MEMBER $a $b" level 200 left associativity
+Notation "$a $b" := "$a $b" level 190 left associativity
 Notation "$a + $b" := "add $a $b" level 60 left associativity
 Notation "$a - $b" := "sub $a $b" level 60 left associativity
 Notation "$a * $b" := "mul $a $b" level 70 left associativity

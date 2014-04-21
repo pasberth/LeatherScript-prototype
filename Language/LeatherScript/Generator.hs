@@ -11,9 +11,9 @@ data JavaScriptAST
   | Function JavaScriptAST JavaScriptAST
   | Call JavaScriptAST JavaScriptAST
   | Conditional JavaScriptAST JavaScriptAST JavaScriptAST
-  | While JavaScriptAST JavaScriptAST
   | Assign JavaScriptAST JavaScriptAST
   | Sequence JavaScriptAST JavaScriptAST
+  | Member JavaScriptAST JavaScriptAST
 
 fromAST :: AST.AST -> JavaScriptAST
 fromAST (AST.Identifier ident _) = Identifier ident
@@ -22,6 +22,7 @@ fromAST (AST.Abstraction x y) = Function (fromAST x) (fromAST y)
 fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z)
 fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
 fromAST (AST.Sequence x y) = Sequence (fromAST x) (fromAST y)
+fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
 
 instance Aeson.ToJSON JavaScriptAST where
   toJSON (Identifier ident)
@@ -67,3 +68,8 @@ instance Aeson.ToJSON JavaScriptAST where
     = Aeson.object [
           "type" Aeson..= ("SequenceExpression" :: Text.Text)
         , "expressions" Aeson..= [x, y]]
+  toJSON (Member x y)
+    = Aeson.object [
+          "type" Aeson..= ("MemberExpression" :: Text.Text)
+        , "object" Aeson..= x
+        , "property" Aeson..= y]
