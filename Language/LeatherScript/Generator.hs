@@ -22,8 +22,10 @@ data JavaScriptAST
   | Mul JavaScriptAST JavaScriptAST
   | Div JavaScriptAST JavaScriptAST
   | Member JavaScriptAST JavaScriptAST
+  | NTuple [JavaScriptAST]
   | Object [(JavaScriptAST, JavaScriptAST)]
   | StrLit Text.Text
+  | IntLit Int
 
 fromAST :: AST.AST -> JavaScriptAST
 fromAST (AST.Identifier ident _) = Identifier ident
@@ -34,6 +36,9 @@ fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
 fromAST (AST.Sequence x y) = Sequence (fromAST x) (fromAST y)
 fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
 fromAST (AST.Variant x y) = Object [(fromAST x, fromAST y)]
+fromAST (AST.OrderedPair x y) = case (fromAST x, fromAST y) of
+  (x', NTuple ys) -> NTuple (x':ys)
+  (x', y') -> NTuple [x',y']
 fromAST (AST.UnorderedPair x y) = case (fromAST x, fromAST y) of
   (Object x', Object y') -> Object (x'++y')
 fromAST (AST.StrLit s) = StrLit s
@@ -55,12 +60,21 @@ mkTest (AST.Variant x y) ident = do
   let test1 = Member ident (fromAST x)
   let test2 = mkTest y test1
   test2
+mkTest (AST.OrderedPair x y@(AST.OrderedPair _ _)) it = do
+  let test1 = mkTest x (Member it (IntLit 0))
+  let test2 = mkTest y (Call (Member it (Identifier "slice")) (IntLit 1))
+  And test1 test2
+mkTest (AST.OrderedPair x y) it = do
+  let test1 = mkTest x (Member it (IntLit 0))
+  let test2 = mkTest y (Member it (IntLit 1))
+  And test1 test2
 mkTest (AST.UnorderedPair x y) it = do
   let test1 = mkTest x it
   let test2 = mkTest y it
   And test1 test2
 mkTest (AST.Identifier x _) ident = Assign (Identifier x) ident
 mkTest (AST.StrLit s) ident = Eq ident (StrLit s)
+mkTest (AST.IntLit s) ident = Eq ident (IntLit s)
 
 instance Aeson.ToJSON JavaScriptAST where
   toJSON (Identifier ident)
@@ -162,10 +176,20 @@ instance Aeson.ToJSON JavaScriptAST where
           "type" Aeson..= ("SequenceExpression" :: Text.Text)
         , "expressions" Aeson..= [x, y]]
   toJSON (Member x y)
-    = Aeson.object [
-          "type" Aeson..= ("MemberExpression" :: Text.Text)
-        , "object" Aeson..= x
-        , "property" Aeson..= y]
+    = case y of
+        Identifier _ -> Aeson.object [
+            "type" Aeson..= ("MemberExpression" :: Text.Text)
+          , "object" Aeson..= x
+          , "property" Aeson..= y]
+        _ ->  Aeson.object [
+            "type" Aeson..= ("MemberExpression" :: Text.Text)
+          , "object" Aeson..= x
+          , "property" Aeson..= y
+          , "computed" Aeson..= True ]
+  toJSON (NTuple xs)
+    = do
+      Aeson.object [ "type" Aeson..= ("ArrayExpression" :: Text.Text)
+                   , "elements" Aeson..= xs ]
   toJSON (Object properties)
     = do
         Aeson.object [ "type" Aeson..= ("ObjectExpression" :: Text.Text)
@@ -181,4 +205,8 @@ instance Aeson.ToJSON JavaScriptAST where
   toJSON (StrLit s)
     = Aeson.object [ "type" Aeson..= ("Literal" :: Text.Text)
                    , "value" Aeson..= s
+                   ]
+  toJSON (IntLit i)
+    = Aeson.object [ "type" Aeson..= ("Literal" :: Text.Text)
+                   , "value" Aeson..= i
                    ]

@@ -5,6 +5,7 @@
 module Language.LeatherScript.AST where
 
 import           Control.Applicative
+import qualified Data.Char 
 import qualified Data.Text                      as Text
 import qualified Data.Vector                    as Vector
 import qualified Data.Aeson                     as Aeson
@@ -24,9 +25,11 @@ data AST
   | Sequence AST AST
   | Member AST AST
   | Variant AST AST
+  | OrderedPair AST AST
   | UnorderedPair AST AST
   | Match AST [(AST, AST)]
   | StrLit Text.Text
+  | IntLit Int
   | Not AST
   | And AST AST
   | Or AST AST
@@ -46,8 +49,11 @@ fromSyntaxTree tokens (Parser.Token txt@(Text.head -> '"') _) = do
                    '\\' -> Text.cons (Text.head (Text.tail x)) $ unescape (Text.tail (Text.tail x))
                    _ -> Text.cons (Text.head x) (unescape (Text.tail x))
 fromSyntaxTree tokens (Parser.Token ident i) = do
-  let tk = (Vector.!) tokens i
-  Identifier ident (Location (Tokenizer.lineno tk, Tokenizer.columnno tk))
+  if Data.Char.isDigit (Text.head ident)
+    then IntLit $ read $ Text.unpack ident
+    else do
+      let tk = (Vector.!) tokens i
+      Identifier ident (Location (Tokenizer.lineno tk, Tokenizer.columnno tk))
 fromSyntaxTree tokens (Parser.Preference
                        v@(Vector.head -> Parser.Token "@LAMBDA" _))
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
@@ -84,6 +90,12 @@ fromSyntaxTree tokens (Parser.Preference
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
          , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
     (Just x, Just y) -> Variant x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@ORDERED-PAIR" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> OrderedPair x y
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference
                         v@(Vector.head -> Parser.Token "@UNORDERED-PAIR" _))
@@ -222,8 +234,13 @@ instance Aeson.ToJSON AST where
                    , "tag" Aeson..= tag
                    , "value" Aeson..= value
                    ]
+  toJSON (OrderedPair left right)
+    = Aeson.object [ "type" Aeson..= ("OrderedPair" :: Text.Text)
+                   , "left" Aeson..= left
+                   , "right" Aeson..= right
+                   ]
   toJSON (UnorderedPair left right)
-    = Aeson.object [ "type" Aeson..= ("Variant" :: Text.Text)
+    = Aeson.object [ "type" Aeson..= ("UnorderedPair" :: Text.Text)
                    , "left" Aeson..= left
                    , "right" Aeson..= right
                    ]
@@ -274,4 +291,8 @@ instance Aeson.ToJSON AST where
   toJSON (StrLit s )
     = Aeson.object [ "type" Aeson..= ("String" :: Text.Text)
                    , "value" Aeson..= s
+                   ]
+  toJSON (IntLit i)
+    = Aeson.object [ "type" Aeson..= ("integer" :: Text.Text)
+                   , "value" Aeson..= i
                    ]

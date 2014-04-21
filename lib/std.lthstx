@@ -14,6 +14,7 @@ Notation "$a := $b" := "@ASSIGN $a $b" level 10 right associativity
 Notation "$a . $b" := "@MEMBER $a $b" level 200 left associativity
 Notation "` $a -> $b" := "@VARIANT $a $b" level 9 right associativity
 Notation "$a & $b" := "@UNORDERED-PAIR $a $b" level 8 right associativity
+Notation "$a , $b" := "@ORDERED-PAIR $a $b" level 10 right associativity
 Notation "@not $a" := "@NOT $a" level 40 right associativity
 Notation "$a @and $b" := "@AND $a $b" level 30 right associativity
 Notation "$a @or $b" := "@OR $a $b" level 20 right associativity
@@ -21,7 +22,6 @@ Notation "$a @add $b" := "@ADD $a $b" level 60 left associativity
 Notation "$a @sub $b" := "@SUB $a $b" level 60 left associativity
 Notation "$a @mul $b" := "@MUL $a $b" level 70 left associativity
 Notation "$a @div $b" := "@DIV $a $b" level 70 left associativity
-Notation "$a , $b" := "` fst -> $a & ` snd -> $b" level 10 right associativity
 Notation "$a $b" := "$a $b" level 190 left associativity
 Notation "$a <| $b" := "$a $b" level 5 right associativity
 Notation "$a |> $b" := "$b $a" level 5 left associativity
