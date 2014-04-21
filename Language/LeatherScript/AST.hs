@@ -27,6 +27,14 @@ data AST
   | UnorderedPair AST AST
   | Match AST [(AST, AST)]
   | StrLit Text.Text
+  | Not AST
+  | And AST AST
+  | Or AST AST
+  | Eq AST AST
+  | Add AST AST
+  | Sub AST AST
+  | Mul AST AST
+  | Div AST AST
   deriving (Show)
 
 fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
@@ -96,6 +104,53 @@ fromSyntaxTree tokens (Parser.Preference
          , fromSyntaxTree tokens <$> ((Vector.!?) v 2)
          , fromSyntaxTree tokens <$> ((Vector.!?) v 3)) of
     (Just (Match x yzs), Just y, Just z) -> Match x (yzs ++ [(y,z)])
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@NOT" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1) of
+    (Just x) -> Not x
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@AND" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> And x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@OR" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Or x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@EQ" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Eq x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@ADD" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Add x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@SUB" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Sub x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@MUL" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Mul x y
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@DIV" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
+    (Just x, Just y) -> Div x y
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
@@ -171,6 +226,45 @@ instance Aeson.ToJSON AST where
     = Aeson.object [ "type" Aeson..= ("Variant" :: Text.Text)
                    , "left" Aeson..= left
                    , "right" Aeson..= right
+                   ]
+  toJSON (Not argument)
+    = Aeson.object [ "type" Aeson..= ("Not" :: Text.Text)
+                   , "argument" Aeson..= argument
+                   ]
+  toJSON (And left right)
+    = Aeson.object [ "type" Aeson..= ("And" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
+                   ]
+  toJSON (Or left right)
+    = Aeson.object [ "type" Aeson..= ("Or" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
+                   ]
+  toJSON (Eq left right)
+    = Aeson.object [ "type" Aeson..= ("Eq" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
+                   ]
+  toJSON (Add left right)
+    = Aeson.object [ "type" Aeson..= ("Add" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
+                   ]
+  toJSON (Sub left right)
+    = Aeson.object [ "type" Aeson..= ("Sub" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
+                   ]
+  toJSON (Mul left right)
+    = Aeson.object [ "type" Aeson..= ("Mul" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
+                   ]
+  toJSON (Div left right)
+    = Aeson.object [ "type" Aeson..= ("Div" :: Text.Text)
+                   , "right" Aeson..= left
+                   , "left" Aeson..= right
                    ]
   toJSON (Match x yzs)
     = Aeson.object [ "type" Aeson..= ("Match" :: Text.Text)

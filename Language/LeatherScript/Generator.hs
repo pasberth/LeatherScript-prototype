@@ -13,9 +13,14 @@ data JavaScriptAST
   | Conditional JavaScriptAST JavaScriptAST JavaScriptAST
   | Assign JavaScriptAST JavaScriptAST
   | Sequence JavaScriptAST JavaScriptAST
+  | Not JavaScriptAST
   | And JavaScriptAST JavaScriptAST
   | Or JavaScriptAST JavaScriptAST
   | Eq JavaScriptAST JavaScriptAST
+  | Add JavaScriptAST JavaScriptAST
+  | Sub JavaScriptAST JavaScriptAST
+  | Mul JavaScriptAST JavaScriptAST
+  | Div JavaScriptAST JavaScriptAST
   | Member JavaScriptAST JavaScriptAST
   | Object [(JavaScriptAST, JavaScriptAST)]
   | StrLit Text.Text
@@ -36,6 +41,14 @@ fromAST (AST.Match x yz) = do
   let tmp = (Assign (Identifier "it") (fromAST x))
   let matching = foldr (\(y,z) a -> Conditional (mkTest y (Identifier "it")) (fromAST z) a ) (Identifier "undefined") yz
   Sequence tmp matching
+fromAST (AST.Not x) = Not (fromAST x)
+fromAST (AST.And x y) = And (fromAST x) (fromAST y)
+fromAST (AST.Or x y) = Or (fromAST x) (fromAST y)
+fromAST (AST.Eq x y) = Eq (fromAST x) (fromAST y)
+fromAST (AST.Add x y) = Add (fromAST x) (fromAST y)
+fromAST (AST.Sub x y) = Sub (fromAST x) (fromAST y)
+fromAST (AST.Mul x y) = Mul (fromAST x) (fromAST y)
+fromAST (AST.Div x y) = Div (fromAST x) (fromAST y)
 
 mkTest :: AST.AST -> JavaScriptAST -> JavaScriptAST
 mkTest (AST.Variant x y) ident = do
@@ -89,6 +102,12 @@ instance Aeson.ToJSON JavaScriptAST where
         , "left" Aeson..= x
         , "right" Aeson..= y
         ]
+  toJSON (Not x)
+    = Aeson.object [
+           "type" Aeson..= ("UnaryExpression" :: Text.Text)
+         , "operator" Aeson..= ("!" :: Text.Text)
+         , "argument" Aeson..= x
+         ]
   toJSON (And x y)
     = Aeson.object [
           "type" Aeson..= ("BinaryExpression" :: Text.Text)
@@ -107,6 +126,34 @@ instance Aeson.ToJSON JavaScriptAST where
     = Aeson.object [
           "type" Aeson..= ("BinaryExpression" :: Text.Text)
         , "operator" Aeson..= ("===" :: Text.Text)
+        , "left" Aeson..= x
+        , "right" Aeson..= y
+        ]
+  toJSON (Add x y)
+    = Aeson.object [
+          "type" Aeson..= ("BinaryExpression" :: Text.Text)
+        , "operator" Aeson..= ("+" :: Text.Text)
+        , "left" Aeson..= x
+        , "right" Aeson..= y
+        ]
+  toJSON (Sub x y)
+    = Aeson.object [
+          "type" Aeson..= ("BinaryExpression" :: Text.Text)
+        , "operator" Aeson..= ("-" :: Text.Text)
+        , "left" Aeson..= x
+        , "right" Aeson..= y
+        ]
+  toJSON (Mul x y)
+    = Aeson.object [
+          "type" Aeson..= ("BinaryExpression" :: Text.Text)
+        , "operator" Aeson..= ("*" :: Text.Text)
+        , "left" Aeson..= x
+        , "right" Aeson..= y
+        ]
+  toJSON (Div x y)
+    = Aeson.object [
+          "type" Aeson..= ("BinaryExpression" :: Text.Text)
+        , "operator" Aeson..= ("/" :: Text.Text)
         , "left" Aeson..= x
         , "right" Aeson..= y
         ]
