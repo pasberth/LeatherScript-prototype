@@ -105,10 +105,8 @@ fromSyntaxTree tokens (Parser.Preference
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference
                        v@(Vector.head -> Parser.Token "@MATCH" _))
-  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
-         , fromSyntaxTree tokens <$> ((Vector.!?) v 2)
-         , fromSyntaxTree tokens <$> ((Vector.!?) v 3)) of
-    (Just x, Just y, Just z) -> Match x [(y, z)]
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1) of
+    (Just x) -> Match x []
     _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference
                        v@(Vector.head -> Parser.Token "@CASE" _))
