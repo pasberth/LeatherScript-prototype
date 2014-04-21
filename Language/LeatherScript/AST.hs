@@ -38,6 +38,9 @@ data AST
   | Sub AST AST
   | Mul AST AST
   | Div AST AST
+  | Ascribe AST AST
+  | SimpleType AST
+  | TypeSynonym AST AST
   deriving (Show)
 
 fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
@@ -162,6 +165,23 @@ fromSyntaxTree tokens (Parser.Preference
          , fromSyntaxTree tokens <$> ((Vector.!?) v 2)) of
     (Just x, Just y) -> Div x y
     _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@ASCRIBE" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+  , fromSyntaxTree tokens <$> (Vector.!?) v 2) of
+           (Just x, Just y) -> Ascribe x y
+           _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@SIMPLE-TYPE" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1) of
+    (Just x) -> SimpleType x
+    _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                       v@(Vector.head -> Parser.Token "@TYPE-SYNONYM" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+  , fromSyntaxTree tokens <$> (Vector.!?) v 2) of
+           (Just x, Just y) -> TypeSynonym x y
+           _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
   -- Vector.foldl1 Application (Vector.map (fromSyntaxTree tokens) v)
@@ -293,4 +313,18 @@ instance Aeson.ToJSON AST where
   toJSON (IntLit i)
     = Aeson.object [ "type" Aeson..= ("integer" :: Text.Text)
                    , "value" Aeson..= i
+                   ]
+  toJSON (Ascribe x y)
+    = Aeson.object [ "type" Aeson..= ("Ascribe" :: Text.Text)
+                   , "left" Aeson..= x
+                   , "right" Aeson..= y
+                   ]
+  toJSON (SimpleType s )
+    = Aeson.object [ "type" Aeson..= ("SimpleType" :: Text.Text)
+                   , "value" Aeson..= s
+                   ]
+  toJSON (TypeSynonym x y)
+    = Aeson.object [ "type" Aeson..= ("TypeSynonym" :: Text.Text)
+                   , "left" Aeson..= x
+                   , "right" Aeson..= y
                    ]

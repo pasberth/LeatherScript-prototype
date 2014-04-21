@@ -12,6 +12,7 @@ import qualified Language.LeatherScript.Parser  as Parser
 import qualified Language.LeatherScript.AST     as AST
 import qualified Language.LeatherScript.Generator as Generator
 import qualified Language.LeatherScript.SyntaxDef as SyntaxDef
+import qualified Language.LeatherScript.LeatherShield as LeatherShield
 import qualified System.FilePath.Posix          as FilePath
 import qualified System.Directory               as Directory
 import qualified System.Environment             as Environment
@@ -52,9 +53,19 @@ main = do
       Left err -> print err
       Right st -> do
         let ast = AST.fromSyntaxTree tokens st
-        let json = Aeson.encode ast
 
-        let lth_json = FilePath.replaceExtension src "lth.json"
-        let js_json = FilePath.replaceExtension src "js.json"
-        writeFile lth_json (ByteString.toString json)
-        writeFile js_json (ByteString.toString (Aeson.encode (Generator.fromAST ast)))
+        typ <- LeatherShield.runLeatherShieldT (LeatherShield.leatherShield ast) LeatherShield.emptyLeatherShield
+
+        case typ of
+          Left typeError -> print typeError
+          Right _ -> do
+
+            let json = Aeson.encode ast
+
+            let lth_json = FilePath.replaceExtension src "lth.json"
+            let js_json = FilePath.replaceExtension src "js.json"
+            writeFile lth_json (ByteString.toString json)
+            writeFile js_json (ByteString.toString (Aeson.encode (Generator.fromAST ast)))
+
+
+

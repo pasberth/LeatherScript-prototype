@@ -37,7 +37,10 @@ fromAST (AST.Abstraction x y) = Function (mkParams x) (fromAST y) where
   mkParams x = [fromAST x]
 fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z)
 fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
-fromAST (AST.Sequence x y) = Sequence (fromAST x) (fromAST y)
+fromAST (AST.Sequence x y) = case x of
+                               AST.SimpleType _ -> fromAST y
+                               AST.TypeSynonym _ _ -> fromAST y
+                               _ -> Sequence (fromAST x) (fromAST y)
 fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
 fromAST (AST.Variant x y) = Object [(fromAST x, fromAST y)]
 fromAST (AST.OrderedPair x y) = case (fromAST x, fromAST y) of
@@ -58,6 +61,7 @@ fromAST (AST.Add x y) = Add (fromAST x) (fromAST y)
 fromAST (AST.Sub x y) = Sub (fromAST x) (fromAST y)
 fromAST (AST.Mul x y) = Mul (fromAST x) (fromAST y)
 fromAST (AST.Div x y) = Div (fromAST x) (fromAST y)
+fromAST (AST.Ascribe x y) = fromAST x
 
 mkTest :: AST.AST -> JavaScriptAST -> JavaScriptAST
 mkTest (AST.Variant x y) ident = do
