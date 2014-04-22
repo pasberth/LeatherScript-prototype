@@ -1,0 +1,8 @@
+assert := (require "chai").assert;
+verify := (require "./../src/leathershield").verify;
+
+describe "type verifier" by
+  it "verifies a string" as (
+    result := verify(`"type" of "String");
+    assert.property(result, "Simple");
+    assert.equal(result.Simple, "string"))

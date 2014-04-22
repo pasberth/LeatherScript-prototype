@@ -1,0 +1,24 @@
+type string = simple string;
+type int = simple int;
+type Type = `Simple of string;
+type Result
+  = `TypeError of string
+  | `Type of Type;
+type TypeEnv = simple map;
+type StrLit = `"type" of string & `value of string;
+type IntLit = `"type" of string & `value of int;
+type AST = StrLit | IntLit;
+
+verify : ^ AST, TypeEnv -> Result;
+verify := ^ ast : AST, e : TypeEnv -> begin
+  match ast
+  case `"type" of "String" ->
+    `Simple of "string"
+  case `"type" of "Integer" ->
+    `Simple of "int"
+  case `"type" of _ ->
+    `TypeError of "abc"
+end;
+
+module.exports
+  := `verify of verify

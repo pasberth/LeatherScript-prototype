@@ -1,0 +1,115 @@
+Token "."
+Token ";"
+Token ","
+Token "^"
+Token "`"
+Token "("
+Token ")"
+
+Notation "$a ; $b" := "@SEQUENCE $a $b"
+         level 0 right associativity
+
+Notation "$a . $b" := "@MEMBER $a $b"
+         level 2000 left associativity
+
+Notation "$a : $b" := "@ASCRIBE $a $b"
+         level 1800 no associativity
+
+Notation "type $a = $b" := "@TYPE-SYNONYM $a $b"
+         level 20 no associativity
+
+Notation "$a := $b" := "@ASSIGN $a $b"
+         level 20 right associativity
+
+Notation "if $a then $b else $c" := "@CONDITIONAL $a $b $c"
+         level 20 right associativity
+
+Notation "match $a" := "@MATCH $a"
+         level 30 left associativity
+
+Notation "$a case $b -> $c" := "@CASE $a $b $c"
+         level 30 left associativity
+
+Notation "^ $a -> $b" := "@LAMBDA $a $b"
+         level 40 right associativity
+
+Notation "$a | $b" := "@EITHER-TYPE $a $b"
+         level 40 right associativity
+
+Notation "unit" := "@UNIT"
+         level 3000 no associativity
+
+Notation "$a , $b" := "@ORDERED-PAIR $a $b"
+         level 50 right associativity
+
+Notation "$a & $b" := "@UNORDERED-PAIR $a $b"
+         level 50 right associativity
+
+Notation "` $a of $b" := "@VARIANT $a $b"
+         level 60 right associativity
+
+Notation "simple $a" := "@SIMPLE-TYPE $a"
+         level 70 right associativity
+
+Notation "$a @or $b" := "@OR $a $b"
+         level 200 right associativity
+
+Notation "$a @and $b" := "@AND $a $b"
+         level 300 right associativity
+
+Notation "@not $a" := "@NOT $a"
+         level 400 right associativity
+
+Notation "$a @add $b" := "@ADD $a $b"
+         level 600 left associativity
+
+Notation "$a @sub $b" := "@SUB $a $b"
+         level 600 left associativity
+
+Notation "$a @mul $b" := "@MUL $a $b"
+         level 700 left associativity
+
+Notation "$a @div $b" := "@DIV $a $b"
+         level 700 left associativity
+
+Notation "($a)" := "$a"
+         level 2000 no associativity
+
+Notation "begin $a end" := "$a"
+         level 2000 no associativity
+
+Notation "$a $b" := "$a $b"
+         level 1900 left associativity
+
+Notation "$a <| $b" := "$a $b"
+         level 100 right associativity
+
+Notation "$a |> $b" := "$b $a"
+         level 100 left associativity
+
+Notation "! $a" := "not $a"
+         level 400 right associativity
+
+Notation "$a && $b" := "and($a, $b)"
+         level 300 right associativity
+
+Notation "$a || $b" := "or($a, $b)"
+         level 200 right associativity
+
+Notation "$a + $b" := "addition($a, $b)"
+         level 600 left associativity
+
+Notation "$a - $b" := "subtraction($a, $b)"
+         level 600 left associativity
+
+Notation "$a * $b" := "multiplication($a, $b)"
+         level 700 left associativity
+
+Notation "$a / $b" := "division($a, $b)"
+         level 700 left associativity
+
+Notation "describe $a by $b" := "describe($a, (^ unit -> $b))"
+         level 20 right associativity
+
+Notation "it $a as $b" := "it($a, (^ unit -> $b))"
+         level 25 no associativity
