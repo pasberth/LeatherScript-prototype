@@ -2,3 +2,6 @@
 *.o
 *.dyn_o
 *.dyn_hi
+*.lth.json
+*.js.json
+*.js

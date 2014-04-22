@@ -1,0 +1,5 @@
+type string = simple string;
+token : string;
+token := ^text : string, token_def : string ->
+  match text
+  case x -> x

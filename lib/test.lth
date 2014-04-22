@@ -1,0 +1,8 @@
+if true then 1 else 2;
+identity := ^x -> x;
+constantly := ^x -> ^y -> x;
+fst := ^x -> x.fst;
+console.log <| "hello \" world";
+fst "aab";
+`a of b c d & `x of y z & `aaa of bcd;
+a , b , c , d

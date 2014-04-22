@@ -1,0 +1,25 @@
+Token "."
+Token ";"
+Token ","
+
+Notation "$a ; $b" := "@SEQUENCE $a $b"
+         level 0 right associativity
+
+Notation "$a . $b" := "@MEMBER $a $b"
+         level 2000 left associativity
+
+Notation "$a , $b" := "@ORDERED-PAIR $a $b"
+         level 1900 right associativity
+
+Notation "$a = $b" := "@ASSIGN $a $b"
+         level 100 right associativity
+
+Notation "($a)" := "$a"
+         level 2000 no associativity
+
+Notation "do $a end" := "$a"
+         level 2000 no associativity
+
+Notation "$a $b" := "$a $b"
+         level 1900 right associativity
+

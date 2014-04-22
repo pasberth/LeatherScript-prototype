@@ -40,7 +40,7 @@ Notation "unit" := "@UNIT"
          level 3000 no associativity
 
 Notation "$a , $b" := "@ORDERED-PAIR $a $b"
-         level 50 right associativity
+         level 1900 right associativity
 
 Notation "$a & $b" := "@UNORDERED-PAIR $a $b"
          level 50 right associativity

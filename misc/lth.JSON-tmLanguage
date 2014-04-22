@@ -1,0 +1,72 @@
+{ "name": "LeatherScript",
+  "scopeName": "source.lth",
+  "fileTypes": ["lth"],
+  "patterns": [
+    {
+      "begin": "\"",
+      "end": "(?<!\\\\)\"",
+      "name": "string.quoted.double.lth"
+    },
+    {
+      "match": "(type)\\s+(\\w+)",
+      "captures": {
+          "1": { "name": "keyword.lth" },
+          "2": { "name": "storage.type.lth" }
+      }
+    },
+    {
+      "match": "if",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "then",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "else",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "match",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "case",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "begin",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "end",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "simple",
+      "name": "keyword.lth"
+    },
+    {
+      "match": "`(\\w+)\\s+(of)\\s+",
+      "captures": {
+        "1": { "name": "constant.language.lth" },
+        "2": { "name": "keyword.lth" }
+      }
+    },
+    {
+      "match": "`\\w+\\s+",
+      "name": "invalid.illegal"
+    },
+    {
+      "match": "(\\w+)\\s+:\\s+",
+      "captures": {
+        "1": { "name": "entity.name.function.lth" }
+      }
+    },
+    {
+      "match": "\\w+",
+      "name": "variable.lth"
+    }
+  ],
+  "uuid": "4d06c48f-6167-4c6b-b59b-7ce5932ef552"
+}

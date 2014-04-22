@@ -1,0 +1,7 @@
+(match x
+case `just -> y -> y
+case `nothing -> _ -> "a"
+case `just -> `just -> "bac" -> "aaa");
+
+match y
+case "a","b","c" -> "c"
