@@ -63,6 +63,7 @@ fromAST (AST.Sub x y) = Sub (fromAST x) (fromAST y)
 fromAST (AST.Mul x y) = Mul (fromAST x) (fromAST y)
 fromAST (AST.Div x y) = Div (fromAST x) (fromAST y)
 fromAST (AST.Ascribe x y) = fromAST x
+fromAST (AST.IntLit i) = IntLit i
 
 mkTest :: AST.AST -> JavaScriptAST -> JavaScriptAST
 mkTest (AST.Variant x y) ident = do

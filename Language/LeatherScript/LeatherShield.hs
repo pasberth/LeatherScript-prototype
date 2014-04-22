@@ -30,7 +30,16 @@ data Type
   | VariantTy Text.Text Type
   | RefTy Type
   | UnitTy
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Type where
+  show (SimpleTy t) = Text.unpack t
+  show (ArrowTy t1 t2) = "(" ++ show t1 ++ " -> " ++ show t2 ++ ")"
+  show (PairTy t1 t2) = "(" ++ show t1 ++ " , " ++ show t2 ++ ")"
+  show (UPairTy t1 t2) = "(" ++ show t1 ++ " & " ++ show t2 ++ ")"
+  show (EitherTy t1 t2) = "(" ++ show t1 ++ " | " ++ show t2 ++ ")"
+  show (VariantTy t t1) = "`" ++ Text.unpack t ++ " of " ++ show t1
+  show UnitTy = "()"
 
 data TypeError
   = TypeError Type Type
@@ -71,6 +80,7 @@ forceMkType (AST.Identifier s _) e = case HashMap.lookup s e of
 forceMkType (AST.EitherTy x y) e = EitherTy (forceMkType x e) (forceMkType y e)
 forceMkType (AST.Abstraction x y) e = ArrowTy (forceMkType x e) (forceMkType y e)
 forceMkType (AST.OrderedPair x y) e = PairTy (forceMkType x e) (forceMkType y e)
+forceMkType (AST.Variant x y) e = VariantTy (forceMkName x) (forceMkType y e)
 
 typeError :: Monad m => TypeError -> LeatherShieldT m a
 typeError = LeatherShieldT . lift . left
@@ -92,7 +102,7 @@ leatherShield (AST.Assign x y) = do
   yTy <- leatherShield y
   uses typeEnv (HashMap.lookup ident) >>= \x -> case x of
     Just ty -> do
-      if yTy == ty
+      if match yTy ty
          then return UnitTy
          else typeError $ TypeError ty yTy
     Nothing -> do
@@ -111,7 +121,7 @@ leatherShield (AST.Application x y) = do
   yTy <- leatherShield y
   case xTy of
     ArrowTy aTy bTy
-      -> if aTy == yTy
+      -> if match yTy aTy
             then return bTy
             else typeError $ TypeError aTy yTy
     _ -> typeError $ TypeError (ArrowTy yTy (SimpleTy "a")) xTy
@@ -202,6 +212,17 @@ leatherShield (AST.OrderedPair x y ) = do
 eitherInclude :: Type -> Type -> Bool
 eitherInclude ty1 (EitherTy ty2 ty3) = eitherInclude ty1 ty2 || eitherInclude ty1 ty3
 eitherInclude ty1 ty2 = ty1 == ty2
+
+match :: Type -> Type -> Bool
+match (SimpleTy x) (SimpleTy y) = x == y
+match (ArrowTy x1 y1) (ArrowTy x2 y2) = match x1 x2 && match y1 y2
+match (PairTy x1 y1) (PairTy x2 y2) = match x1 x2 && match y1 y2
+match (UPairTy x1 y1) (UPairTy x2 y2) = match x1 x2 && match y1 y2
+match ty1 (EitherTy ty2 ty3) = eitherInclude ty1 (EitherTy ty2 ty3)
+match (RefTy x1) (RefTy x2) = match x1 x2
+match (VariantTy x1 y1) (VariantTy x2 y2) = x1 == x2 && match y1 y2
+match UnitTy UnitTy = True
+match _ _ = False
 
 paramTy (AST.Ascribe _ t) e = forceMkType t e
 paramTy (AST.OrderedPair x y) e = PairTy (paramTy x e) (paramTy y e)
