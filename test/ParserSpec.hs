@@ -219,6 +219,8 @@ main = hspec $ do
       assert "( a + b )" "(+ a b)"
     it "a * (b + c) == (* a (+ b c))" $ do
       assert "a * ( b + c )" "(* a (+ b c))"
+    it "a + b (c) == (+ a (b c))" $ do
+      assert "a + b ( c )" "(+ a (b c))"
     it "~ a = b == (~ (= a b))" $ do
       assert "~ a = b" "(~ (= a b))"
     it "if a and b then c + d else e + f == (if-then-else (and a b) (+ c d) (+ e f))" $ do

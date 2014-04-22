@@ -248,7 +248,19 @@ reduce = do
       let e = mkEnvironment (notation ^. pattern) operands
       let st = subst (notation ^. replacement) e
       notationStack %= Vector.tail
-      parserStack %= Vector.cons st
+      use parserStack >>= \case
+        [] -> parserStack %= Vector.cons st
+        _ -> do
+          uses notations (HashMap.lookup "") >>= \case
+            Nothing -> do
+              parserStack %= Vector.cons st
+            Just notation -> do
+              reduceGroup notation
+              left <- uses parserStack Vector.head
+              parserStack %= Vector.tail
+              let e = mkEnvironment (notation ^. pattern) [left, st]
+              parserStack %= Vector.cons (subst (notation ^. replacement) e)
+
     (Vector.head -> Keyword expectingKeyword) -> do
       parseError $ Expecting expectingKeyword
     (Vector.head -> Variable expectingKeyword) -> do

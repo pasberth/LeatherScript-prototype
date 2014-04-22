@@ -194,6 +194,11 @@ leatherShield (AST.Div x y) = do
                      then return xt
                      else typeError $ TypeError xt yt
 
+leatherShield (AST.OrderedPair x y ) = do
+  xt <- leatherShield x
+  yt <- leatherShield y
+  return $ PairTy xt yt
+
 eitherInclude :: Type -> Type -> Bool
 eitherInclude ty1 (EitherTy ty2 ty3) = eitherInclude ty1 ty2 || eitherInclude ty1 ty3
 eitherInclude ty1 ty2 = ty1 == ty2
