@@ -17,12 +17,12 @@ Notation "$a : $b" := "@ASCRIBE $a $b"
          level 180 no associativity
 
 Notation "^ $a -> $b" := "@LAMBDA $a $b"
-         level 5 right associativity
-
-Notation "` $a -> $b" := "@VARIANT $a $b"
-         level 5 right associativity
+         level 4 right associativity
 
 Notation "$a | $b" := "@EITHER-TYPE $a $b"
+         level 4 right associativity
+
+Notation "` $a of $b" := "@VARIANT $a $b"
          level 5 right associativity
 
 Notation "match $a" := "@MATCH $a"
@@ -35,7 +35,7 @@ Notation "if $a then $b else $c" := "@CONDITIONAL $a $b $c"
          level 7 right associativity
 
 Notation "type $a = $b" := "@TYPE-SYNONYM $a $b"
-         level 4 no associativity
+         level 3 no associativity
 
 Notation "$a := $b" := "@ASSIGN $a $b"
          level 8 right associativity
