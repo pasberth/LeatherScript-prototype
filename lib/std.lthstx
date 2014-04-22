@@ -1,7 +1,6 @@
 Token "."
 Token ";"
 Token ","
-Token "&"
 Token "^"
 Token "`"
 Token "("
