@@ -40,6 +40,7 @@ fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
 fromAST (AST.Sequence x y) = case x of
                                AST.SimpleType _ -> fromAST y
                                AST.TypeSynonym _ _ -> fromAST y
+                               AST.Ascribe (AST.Identifier _ _) _ -> fromAST y
                                _ -> Sequence (fromAST x) (fromAST y)
 fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
 fromAST (AST.Variant x y) = Object [(fromAST x, fromAST y)]

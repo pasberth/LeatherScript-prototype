@@ -40,6 +40,7 @@ data AST
   | Div AST AST
   | Ascribe AST AST
   | SimpleType AST
+  | EitherTy AST AST
   | TypeSynonym AST AST
   deriving (Show)
 
@@ -181,6 +182,12 @@ fromSyntaxTree tokens (Parser.Preference
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
   , fromSyntaxTree tokens <$> (Vector.!?) v 2) of
            (Just x, Just y) -> TypeSynonym x y
+           _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                       v@(Vector.head -> Parser.Token "@EITHER-TYPE" _))
+  = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
+  , fromSyntaxTree tokens <$> (Vector.!?) v 2) of
+           (Just x, Just y) -> EitherTy x y
            _ -> reduceST tokens v
 fromSyntaxTree tokens (Parser.Preference v) = reduceST tokens v
   -- the code that couldn't be compiling by "cabal build"...
@@ -325,6 +332,11 @@ instance Aeson.ToJSON AST where
                    ]
   toJSON (TypeSynonym x y)
     = Aeson.object [ "type" Aeson..= ("TypeSynonym" :: Text.Text)
+                   , "left" Aeson..= x
+                   , "right" Aeson..= y
+                   ]
+  toJSON (EitherTy x y)
+    = Aeson.object [ "type" Aeson..= ("EitherType" :: Text.Text)
                    , "left" Aeson..= x
                    , "right" Aeson..= y
                    ]

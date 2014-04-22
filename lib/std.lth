@@ -1,7 +1,13 @@
-addition := ^x , y -> x @add y;
-subtraction := ^x , y -> x @sub y;
-multiplication := ^x , y -> x @mul y;
-division := ^x , y -> x @div y;
+type int = simple int;
 
-a + b * c + d;
-a , b , c , d
+addition : ^int, int -> int;
+addition := ^(x : int, y : int) -> x @add y;
+
+subtraction : ^int, int -> int;
+subtraction := ^(x : int, y : int) -> x @sub y;
+
+multiplication : ^int, int -> int;
+multiplication := ^(x : int, y : int) -> x @mul y;
+
+division : ^int, int -> int;
+division := ^(x : int, y : int) -> x @div y

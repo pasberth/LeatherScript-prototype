@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Language.LeatherScript.LeatherShield where
 
@@ -67,6 +68,9 @@ forceMkType (AST.SimpleType s) e = SimpleTy $ forceMkName s
 forceMkType (AST.Identifier s _) e = case HashMap.lookup s e of
                                        Just ty -> ty
                                        _ -> error ("not found;" ++ show s)
+forceMkType (AST.EitherTy x y) e = EitherTy (forceMkType x e) (forceMkType y e)
+forceMkType (AST.Abstraction x y) e = ArrowTy (forceMkType x e) (forceMkType y e)
+forceMkType (AST.OrderedPair x y) e = PairTy (forceMkType x e) (forceMkType y e)
 
 typeError :: Monad m => TypeError -> LeatherShieldT m a
 typeError = LeatherShieldT . lift . left
@@ -86,8 +90,14 @@ leatherShield (AST.Sequence x y) = do
 leatherShield (AST.Assign x y) = do
   let ident = forceMkName x
   yTy <- leatherShield y
-  typeEnv %= HashMap.insert ident yTy
-  return UnitTy
+  uses typeEnv (HashMap.lookup ident) >>= \x -> case x of
+    Just ty -> do
+      if yTy == ty
+         then return UnitTy
+         else typeError $ TypeError ty yTy
+    Nothing -> do
+      typeEnv %= HashMap.insert ident yTy
+      return UnitTy
 leatherShield (AST.Abstraction x y) = do
   synonyms <- use typeSynonyms
   let ty = paramTy x synonyms
@@ -123,6 +133,56 @@ leatherShield (AST.Variant x y) = do
   let ident = forceMkName x
   ty <- leatherShield y
   return $ VariantTy ident ty
+
+leatherShield (AST.StrLit _) = do
+  return $ SimpleTy "string"
+
+leatherShield (AST.IntLit _) = do
+  return $ SimpleTy "int"
+
+leatherShield (AST.Add x y) = do
+  xt <- leatherShield x
+  yt <- leatherShield y
+  if xt == SimpleTy "string"
+     then return $ SimpleTy "string"
+     else if yt == SimpleTy "string"
+             then return $ SimpleTy "string"
+             else if xt == yt
+                     then return xt
+                     else typeError $ TypeError xt yt
+
+leatherShield (AST.Sub x y) = do
+  xt <- leatherShield x
+  yt <- leatherShield y
+  if xt == SimpleTy "string"
+     then return $ SimpleTy "string"
+     else if yt == SimpleTy "string"
+             then return $ SimpleTy "string"
+             else if xt == yt
+                     then return xt
+                     else typeError $ TypeError xt yt
+
+leatherShield (AST.Mul x y) = do
+  xt <- leatherShield x
+  yt <- leatherShield y
+  if xt == SimpleTy "string"
+     then return $ SimpleTy "string"
+     else if yt == SimpleTy "string"
+             then return $ SimpleTy "string"
+             else if xt == yt
+                     then return xt
+                     else typeError $ TypeError xt yt
+
+leatherShield (AST.Div x y) = do
+  xt <- leatherShield x
+  yt <- leatherShield y
+  if xt == SimpleTy "string"
+     then return $ SimpleTy "string"
+     else if yt == SimpleTy "string"
+             then return $ SimpleTy "string"
+             else if xt == yt
+                     then return xt
+                     else typeError $ TypeError xt yt
 
 eitherInclude :: Type -> Type -> Bool
 eitherInclude ty1 (EitherTy ty2 ty3) = eitherInclude ty1 ty2 || eitherInclude ty1 ty3

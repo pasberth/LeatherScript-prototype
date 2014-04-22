@@ -7,6 +7,9 @@ Token "`"
 Token "("
 Token ")"
 
+Notation "$a ; $b" := "@SEQUENCE $a $b"
+         level 0 right associativity
+
 Notation "$a . $b" := "@MEMBER $a $b"
          level 200 left associativity
 
@@ -24,9 +27,6 @@ Notation "match $a" := "@MATCH $a"
 
 Notation "$a case $b -> $c" := "@CASE $a $b $c"
          level 6 left associativity
-
-Notation "$a ; $b" := "@SEQUENCE $a $b"
-         level 7 right associativity
 
 Notation "if $a then $b else $c" := "@CONDITIONAL $a $b $c"
          level 7 right associativity
