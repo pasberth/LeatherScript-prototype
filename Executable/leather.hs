@@ -59,13 +59,14 @@ main = do
         case typ of
           Left typeError -> print typeError
           Right _ -> do
+            return ()
 
-            let json = Aeson.encode ast
+        let json = Aeson.encode ast
 
-            let lth_json = FilePath.replaceExtension src "lth.json"
-            let js_json = FilePath.replaceExtension src "js.json"
-            writeFile lth_json (ByteString.toString json)
-            writeFile js_json (ByteString.toString (Aeson.encode (Generator.fromAST ast)))
+        let lth_json = FilePath.replaceExtension src "lth.json"
+        let js_json = FilePath.replaceExtension src "js.json"
+        writeFile lth_json (ByteString.toString json)
+        writeFile js_json (ByteString.toString (Aeson.encode (Generator.fromAST ast)))
 
 
 

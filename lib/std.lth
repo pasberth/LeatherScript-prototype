@@ -10,4 +10,5 @@ multiplication : ^int, int -> int;
 multiplication := ^(x : int, y : int) -> x @mul y;
 
 division : ^int, int -> int;
-division := ^(x : int, y : int) -> x @div y
+division := ^(x : int, y : int) -> x @div y;
+addition (42)

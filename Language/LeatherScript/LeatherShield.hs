@@ -105,6 +105,16 @@ leatherShield (AST.Abstraction x y) = do
   typeEnv %= HashMap.union tys
   bodyTy <- leatherShield y
   return $ ArrowTy ty bodyTy
+leatherShield (AST.Application x y) = do
+  synonyms <- use typeSynonyms
+  xTy <- leatherShield x
+  yTy <- leatherShield y
+  case xTy of
+    ArrowTy aTy bTy
+      -> if aTy == yTy
+            then return bTy
+            else typeError $ TypeError aTy yTy
+    _ -> typeError $ TypeError (ArrowTy yTy (SimpleTy "a")) xTy
 leatherShield (AST.Ascribe name ty) = do
   synonyms <- use typeSynonyms
   let ident = forceMkName name
