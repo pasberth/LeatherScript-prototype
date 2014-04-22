@@ -245,21 +245,32 @@ reduce = do
   (notation, operands, unconsumedParts) <- uses notationStack Vector.head
   case unconsumedParts of
     [] -> do
-      let e = mkEnvironment (notation ^. pattern) operands
-      let st = subst (notation ^. replacement) e
-      notationStack %= Vector.tail
       use parserStack >>= \case
-        [] -> parserStack %= Vector.cons st
+        [] -> reduce1
         _ -> do
           uses notations (HashMap.lookup "") >>= \case
             Nothing -> do
-              parserStack %= Vector.cons st
+              reduce1
             Just notation -> do
+              reduce1
+              st <- uses parserStack Vector.head
+              parserStack %= Vector.tail
               reduceGroup notation
               left <- uses parserStack Vector.head
               parserStack %= Vector.tail
               let e = mkEnvironment (notation ^. pattern) [left, st]
               parserStack %= Vector.cons (subst (notation ^. replacement) e)
+    _ -> reduce1
+
+reduce1 :: Monad m => ParserT m ()
+reduce1 = do
+  (notation, operands, unconsumedParts) <- uses notationStack Vector.head
+  case unconsumedParts of
+    [] -> do
+      let e = mkEnvironment (notation ^. pattern) operands
+      let st = subst (notation ^. replacement) e
+      notationStack %= Vector.tail
+      parserStack %= Vector.cons st
 
     (Vector.head -> Keyword expectingKeyword) -> do
       parseError $ Expecting expectingKeyword
@@ -282,13 +293,13 @@ reduceGroup notation = do
               | (left ^. level) > (notation ^. level) -> do
                 lift $ do
                   takeOperand
-                  reduce
+                  reduce1
               | otherwise -> do
                 case (left ^. associativity, notation ^. associativity) of
                   (LeftAssoc, LeftAssoc) ->
                     lift $ do
                       takeOperand
-                      reduce
+                      reduce1
                   (RightAssoc, RightAssoc) ->
                     exit
                   _ ->
@@ -349,7 +360,7 @@ parse1 = do
           foreach (Vector.toList _notationStack) $ \(notation, arguments, unconsumedParts) -> do
             case unconsumedParts of
               [] ->
-                lift $ reduce
+                lift $ reduce1
               ((Vector.!? 1) -> Just (Keyword expectingKeyword)) -> do
                 if kw == expectingKeyword
                   then do
@@ -359,7 +370,7 @@ parse1 = do
               (Vector.head -> Variable _) -> do
                 lift $ do
                   takeOperand
-                  reduce
+                  reduce1
           (notation, arguments, unconsumedParts) <- uses notationStack Vector.head
           if countVariableInPattern (notation ^. pattern) - Vector.length arguments == 1
             then do

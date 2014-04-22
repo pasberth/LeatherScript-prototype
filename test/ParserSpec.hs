@@ -64,7 +64,7 @@ outfixNotations
 infixNotations :: ParserState
 infixNotations
   = emptyParserState
-    & keywords .~ HashSet.fromList ["+","-","*","/","=","?",":","and","or"]
+    & keywords .~ HashSet.fromList ["+","-","*","/","=","?",":","and","or","."]
     & notations .~ HashMap.fromList [
                         ("+", Notation (Infix "$a" [Keyword "+"] "$b") (sexp "(+ $a $b)") LeftAssoc 60)
                     ,   ("-", Notation (Infix "$a" [Keyword "-"] "$b") (sexp "(- $a $b)") LeftAssoc 60)
@@ -74,6 +74,7 @@ infixNotations
                     ,   ("?", Notation (Infix "$a" [Keyword "?", Variable "$b", Keyword ":"] "$c") (sexp "(?: $a $b $c)") RightAssoc 10)
                     ,   ("and", Notation (Infix "$a" [Keyword "and"]"$b") (sexp "(and $a $b)") RightAssoc 30)
                     ,   ("or", Notation (Infix "$a" [Keyword "or"] "$b") (sexp "(or $a $b)") RightAssoc 20)
+                    ,   (".", Notation (Infix "$a" [Keyword "."] "$b") (sexp "(member $a $b)") LeftAssoc 150)
                     ,   ("", Notation (Infix "$a" [] "$b") (sexp "($a $b)") LeftAssoc 100)
                     ]
 
@@ -229,3 +230,9 @@ main = hspec $ do
       assert "~ a ! + ~ b !" "(~ (+ (! a) (~ (! b))))"
     it "|a||b| == ((abs a) (abs b))" $ do
       assert "| a | | b |" "((abs a) (abs b))"
+    it "x . f ( x ) == ((member x f) x)" $ do
+      assert "x . f ( x )" "((member x f) x)"
+    it "x . f ( x + y ) == ((member x f) (+ x y))" $ do
+      assert "x . f ( x + y )" "((member x f) (+ x y))"
+    it "x . f ( x + y ) + z == ((member x f) (+ (+ x y) z))" $ do
+      assert "x . f ( x + y ) + z" "(+ ((member x f) (+ x y)) z)"
