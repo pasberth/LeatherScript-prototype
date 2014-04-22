@@ -31,9 +31,11 @@ fromAST :: AST.AST -> JavaScriptAST
 fromAST (AST.Identifier ident _) = Identifier ident
 fromAST (AST.Application x y) = Call (fromAST x) (mkArgs y) where
   mkArgs (AST.OrderedPair x y) = fromAST x : mkArgs y
+  mkArgs AST.Unit = []
   mkArgs x = [fromAST x]
 fromAST (AST.Abstraction x y) = Function (mkParams x) (fromAST y) where
   mkParams (AST.OrderedPair x y) = fromAST x : mkParams y
+  mkParams AST.Unit = []
   mkParams x = [fromAST x]
 fromAST (AST.Conditional x y z) = Conditional (fromAST x) (fromAST y) (fromAST z)
 fromAST (AST.Assign x y) = Assign (fromAST x) (fromAST y)
@@ -44,6 +46,7 @@ fromAST (AST.Sequence x y) = case x of
                                _ -> Sequence (fromAST x) (fromAST y)
 fromAST (AST.Member x y) = Member (fromAST x) (fromAST y)
 fromAST (AST.Variant x y) = Object [(fromAST x, fromAST y)]
+fromAST (AST.Unit) = NTuple []
 fromAST (AST.OrderedPair x y) = case (fromAST x, fromAST y) of
   (x', NTuple ys) -> NTuple (x':ys)
   (x', y') -> NTuple [x',y']

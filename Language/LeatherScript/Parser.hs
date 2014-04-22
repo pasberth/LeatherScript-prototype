@@ -159,6 +159,7 @@ variablesInPattern (Prefix _ parts v) = Vector.snoc (variablesInNotationParts pa
 variablesInPattern (Postfix v parts _) = Vector.cons v (variablesInNotationParts parts)
 variablesInPattern (Outfix _ parts _) = variablesInNotationParts parts
 variablesInPattern (Infix v1 parts v2) = Vector.cons v1 (Vector.snoc (variablesInNotationParts parts) v2)
+variablesInPattern (Alias _) = []
 
 keywordsInNotationPart :: NotationPart -> Vector.Vector Keyword
 keywordsInNotationPart (Variable _) = Vector.empty
@@ -172,6 +173,7 @@ keywordsInPattern (Prefix k parts _) = Vector.cons k (keywordsInNotationParts pa
 keywordsInPattern (Postfix _ parts k) = Vector.snoc (keywordsInNotationParts parts) k
 keywordsInPattern (Outfix k1 parts k2) = Vector.cons k1 (Vector.snoc (keywordsInNotationParts parts) k2)
 keywordsInPattern (Infix _ parts _) = keywordsInNotationParts parts
+keywordsInPattern (Alias k) = [k]
 
 patternFromVector :: Vector.Vector Text.Text -> Pattern
 patternFromVector v = do
@@ -197,6 +199,7 @@ patternAsVector (Prefix x y z) = Vector.cons (Keyword x) (Vector.snoc y (Variabl
 patternAsVector (Postfix x y z) = Vector.cons (Variable x) (Vector.snoc y (Keyword z))
 patternAsVector (Outfix x y z) = Vector.cons (Keyword x) (Vector.snoc y (Keyword z))
 patternAsVector (Infix x y z) = Vector.cons (Variable x) (Vector.snoc y (Variable z))
+patternAsVector (Alias x) = Vector.singleton (Keyword x)
 
 mkEnvironment :: Pattern -> Vector.Vector SyntaxTree -> HashMap.HashMap Variable SyntaxTree
 mkEnvironment pattern arguments = do
@@ -217,7 +220,7 @@ parse _tokens = do
         case _tokens of
           [] -> do
             ParserState{_notationStack} <- get
-            Vector.forM_ _notationStack $ \_ -> takeOperand >> reduce
+            Vector.forM_ _notationStack $ \_ -> takeOperand >> reduce1
             uses notations (HashMap.lookup "") >>= \case
               Nothing -> uses parserStack Vector.reverse <&> \case
                 [x] -> x
@@ -282,6 +285,8 @@ reduceGroup notation = do
   ParserState{_notationStack} <- get
   foreach (Vector.toList _notationStack) $ \(left, arguments, unconsumedKeywords) -> do
     case left ^. pattern of
+      Alias _ ->
+        lift $ reduce1
       Outfix _ _ _ ->
         exit
       _ -> do
@@ -355,6 +360,10 @@ parse1 = do
               notationStack %= Vector.cons (notation, [left], Vector.drop 2 (patternAsVector (notation ^. pattern)))
               parserStack %= Vector.tail
               tokens %= Vector.tail
+            Notation (Alias _) _ _ _ -> do
+              notationStack %= Vector.cons (notation, [], [])
+              tokens %= Vector.tail
+              reduce1
         Nothing -> do
           ParserState{_notationStack} <- get
           foreach (Vector.toList _notationStack) $ \(notation, arguments, unconsumedParts) -> do
@@ -376,7 +385,7 @@ parse1 = do
             then do
               takeOperand
               notationStack . element 0 . _3 %= Vector.tail -- drop kw
-              reduce
+              reduce1
             else do
               takeOperand
               notationStack . element 0 . _3 %= Vector.tail -- drop kw
@@ -401,8 +410,31 @@ parse1 = do
           tokens %= Vector.tail
         Just tk
           | HashSet.member tk _keywords -> do
-            parserStack %= Vector.cons st
-            tokens %= Vector.tail
+            notationMaybe <- HashMap.lookup tk <$> use notations
+            case notationMaybe of
+              Nothing -> do
+                parserStack %= Vector.cons st
+                tokens %= Vector.tail
+              Just notation -> do
+                case notation ^. pattern of
+                  Postfix _ _ _ -> do
+                    parserStack %= Vector.cons st
+                    tokens %= Vector.tail
+                  Infix _ _ _ -> do
+                    parserStack %= Vector.cons st
+                    tokens %= Vector.tail
+                  _ -> do
+                    uses notations (HashMap.lookup "") >>= \case
+                      Nothing -> do
+                        parserStack %= Vector.cons st
+                        tokens %= Vector.tail
+                      Just notation -> do
+                        parserStack %= Vector.cons st
+                        reduceGroup notation
+                        left <- uses parserStack Vector.head
+                        parserStack %= Vector.tail
+                        notationStack %= Vector.cons (notation, [left], Vector.drop 1 (patternAsVector (notation ^. pattern)))
+                        tokens %= Vector.tail
           | otherwise -> do
             uses notations (HashMap.lookup "") >>= \case
               Nothing -> do

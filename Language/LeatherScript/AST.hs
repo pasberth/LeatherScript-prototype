@@ -42,9 +42,11 @@ data AST
   | SimpleType AST
   | EitherTy AST AST
   | TypeSynonym AST AST
+  | Unit
   deriving (Show)
 
 fromSyntaxTree :: Vector.Vector Tokenizer.Token -> Parser.SyntaxTree -> AST
+fromSyntaxTree _ (Parser.Token "@UNIT" _) = Unit
 fromSyntaxTree tokens (Parser.Token txt@(Text.head -> '"') _) = do
   let str = unescape $ Text.tail (Text.init txt)
   StrLit str where
@@ -172,6 +174,9 @@ fromSyntaxTree tokens (Parser.Preference
   , fromSyntaxTree tokens <$> (Vector.!?) v 2) of
            (Just x, Just y) -> Ascribe x y
            _ -> reduceST tokens v
+fromSyntaxTree tokens (Parser.Preference
+                        v@(Vector.head -> Parser.Token "@UNIT" _))
+  = Unit
 fromSyntaxTree tokens (Parser.Preference
                         v@(Vector.head -> Parser.Token "@SIMPLE-TYPE" _))
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1) of
@@ -339,4 +344,7 @@ instance Aeson.ToJSON AST where
     = Aeson.object [ "type" Aeson..= ("EitherType" :: Text.Text)
                    , "left" Aeson..= x
                    , "right" Aeson..= y
+                   ]
+  toJSON (Unit)
+    = Aeson.object [ "type" Aeson..= ("Unit" :: Text.Text)
                    ]
