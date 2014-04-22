@@ -54,12 +54,12 @@ main = do
       Right st -> do
         let ast = AST.fromSyntaxTree tokens st
 
-        typ <- LeatherShield.runLeatherShieldT (LeatherShield.leatherShield ast) LeatherShield.emptyLeatherShield
+        --typ <- LeatherShield.runLeatherShieldT (LeatherShield.leatherShield ast) LeatherShield.emptyLeatherShield
 
-        case typ of
-          Left typeError -> print typeError
-          Right _ -> do
-            return ()
+        --case typ of
+        --  Left typeError -> print typeError
+        --  Right _ -> do
+        --    return ()
 
         let json = Aeson.encode ast
 
