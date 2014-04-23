@@ -48,8 +48,8 @@ main = do
 
   forM_ srcs $ \src -> do
     content <- Text.pack <$> readFile src
-    let tokens = Tokenizer.runTokenizer (Tokenizer.tokenizeIgnoreSpaces content) tokenDef
-    case SyntaxDef.parseText tokenDef keywords notations content of
+    let tokens = Tokenizer.runTokenizer (Tokenizer.tokenizeIgnoreSpaces src content) tokenDef
+    case SyntaxDef.parseText src tokenDef keywords notations content of
       Left err -> print err
       Right st -> do
         let ast = AST.fromSyntaxTree tokens st

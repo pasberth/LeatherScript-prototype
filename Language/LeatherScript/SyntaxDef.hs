@@ -34,10 +34,10 @@ parseAssociativity = (l <|> r <|> no) <* Text.Trifecta.symbol "associativity" wh
 parseSyntaxDef :: Text.Trifecta.Parser (Vector.Vector SyntaxDef)
 parseSyntaxDef = Vector.fromList <$> many (parseToken <|> parseNotation)
 
-parseText :: TokenDef -> Keywords -> Notations -> Text.Text -> Either ParseError SyntaxTree
-parseText tokenDef_ keywords_ notations_ source = do
-  let tokens = runTokenizer (tokenizeIgnoreSpaces source) tokenDef_
-  let tokens1 = Vector.map (\(Tokenizer.Token tk _ _) -> tk) tokens
+parseText :: FilePath -> TokenDef -> Keywords -> Notations -> Text.Text -> Either ParseError SyntaxTree
+parseText filepath tokenDef_ keywords_ notations_ source = do
+  let tokens = runTokenizer (tokenizeIgnoreSpaces filepath source) tokenDef_
+  let tokens1 = Vector.map (\(Tokenizer.Token tk _ _ _) -> tk) tokens
   let parserState = emptyParserState & keywords .~ keywords_ & notations .~ notations_
   runParser (parse tokens1) parserState
 
@@ -56,8 +56,8 @@ mkParserFromFile path = do
         NotationDef x y level assoc -> do
           tkDef <- IORef.readIORef tokenDef
           sxDef <- IORef.readIORef syntaxs
-          let pattern = patternFromVector (Vector.map (\(Tokenizer.Token tk _ _) -> tk) (runTokenizer (tokenizeIgnoreSpaces x) tkDef))
-          case parseText tkDef (fst sxDef) (snd sxDef) y of
+          let pattern = patternFromVector (Vector.map (\(Tokenizer.Token tk _ _ _) -> tk) (runTokenizer (tokenizeIgnoreSpaces path x) tkDef))
+          case parseText path tkDef (fst sxDef) (snd sxDef) y of
             Left err -> print err
             Right replacement -> do
               let notation = Notation pattern replacement assoc level

@@ -19,6 +19,7 @@ import qualified Language.LeatherScript.Types
 data Token
   = Token
     { text :: Text.Text
+    , filepath :: FilePath
     , lineno :: Int
     , columnno :: Int
     }
@@ -77,8 +78,8 @@ str (Text.uncons -> Just ('"', xs))
 
 str _ = Nothing
 
-tokenize :: Text.Text -> Tokenizer (Vector.Vector Token)
-tokenize text = go text 1 1 where
+tokenize :: FilePath -> Text.Text -> Tokenizer (Vector.Vector Token)
+tokenize filepath text = go text 1 1 where
   go text lineno columnno = do
     token text >>= \case
       Just (tk, rest) -> do
@@ -87,11 +88,11 @@ tokenize text = go text 1 1 where
             go rest lineno (columnno + Text.length tk)
           (lastLine:headLines) -> do
             go rest (lineno + length headLines) (Text.length lastLine + 1)
-        return $ Vector.cons (Token tk lineno columnno) tks
+        return $ Vector.cons (Token tk filepath lineno columnno) tks
       Nothing -> do
         return []
 
-tokenizeIgnoreSpaces :: Text.Text -> Tokenizer (Vector.Vector Token)
-tokenizeIgnoreSpaces = tokenize >>>
+tokenizeIgnoreSpaces :: FilePath -> Text.Text -> Tokenizer (Vector.Vector Token)
+tokenizeIgnoreSpaces filepath = tokenize filepath >>>
   fmap (Vector.filter (\case
-                    Token tk _ _ -> not $ Char.isSpace $ Text.head tk))
+                    Token tk _ _ _ -> not $ Char.isSpace $ Text.head tk))

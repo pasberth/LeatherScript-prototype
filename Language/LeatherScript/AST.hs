@@ -13,7 +13,7 @@ import qualified Language.LeatherScript.Types()
 import qualified Language.LeatherScript.Tokenizer as Tokenizer
 import qualified Language.LeatherScript.Parser  as Parser
 
-newtype Location = Location (Int, Int)
+newtype Location = Location (FilePath, Int, Int)
   deriving (Show)
 
 data AST
@@ -59,7 +59,7 @@ fromSyntaxTree tokens (Parser.Token ident i) = do
     then IntLit $ read $ Text.unpack ident
     else do
       let tk = (Vector.!) tokens i
-      Identifier ident (Location (Tokenizer.lineno tk, Tokenizer.columnno tk))
+      Identifier ident (Location (Tokenizer.filepath tk, Tokenizer.lineno tk, Tokenizer.columnno tk))
 fromSyntaxTree tokens (Parser.Preference
                        v@(Vector.head -> Parser.Token "@LAMBDA" _))
   = case ( fromSyntaxTree tokens <$> (Vector.!?) v 1
@@ -209,9 +209,10 @@ reduceST tokens v = do
     f (Vector.head xs) (Vector.tail xs)
 
 instance Aeson.ToJSON Location where
-  toJSON (Location (lineno, columnno))
+  toJSON (Location (filepath, lineno, columnno))
     = Aeson.object [
-          "lineno" Aeson..= lineno
+          "path" Aeson..= filepath
+        , "lineno" Aeson..= lineno
         , "columnno" Aeson..= columnno
         ]
 
