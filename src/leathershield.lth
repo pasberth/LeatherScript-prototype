@@ -1,15 +1,23 @@
 type string = simple string;
 type int = simple int;
+type bool = simple bool;
 type Type = `Simple of string;
 type Result
   = `Type of Type
-  | `TypeError of string
+  | `TypeError of (Type, Type)
   ;
 type TypeEnv = simple map;
 type StrLit = `"type" of string & `value of string;
 type IntLit = `"type" of string & `value of int;
 type UnitLit = `"type" of string
 type AST = StrLit | IntLit;
+
+isAdaptable : ^ Type, Type -> bool
+isAdaptable := ^ t1 : Type, t2 : Type -> begin
+  match t1, t2
+  case `Simple of x1, `Simple of x2 -> x1 @eq x2
+  case _, _ -> t1 @eq t2
+  end;
 
 verify : ^ AST, TypeEnv -> Result;
 verify := ^ ast : AST, e : TypeEnv -> begin
@@ -23,20 +31,39 @@ verify := ^ ast : AST, e : TypeEnv -> begin
   case `"type" of "Sequence" & `left of l & `right of r -> begin
     lResult := verify(l, e);
     rResult := verify(r, e);
-    match lResult
+    match lResult 
     case `Type of lTy -> begin
       match lTy
       case `"Simple" of "unit" ->
         rResult
       case _ ->
-        `TypeError of "err"
+        `TypeError of (`Simple of "unit", lTy)
+      end
+    case `TypeError of _ ->
+      lResult
+    end
+  case `"type" of "Assign" & `left of l & `right of r -> begin
+    lResult := verify(l, e);
+    rResult := verify(r, e);
+    match lResult
+    case `Type of lTy -> begin
+      match rResult
+      case `Type of rTy -> begin
+        if isAdaptable(lTy, rTy)
+        then
+          `Type of `Simple of "unit"
+        else
+          `TypeError of (lTy, rTy)
+        end
+      case `TypeError of _ ->
+        rResult
       end
     case `TypeError of _ ->
       lResult
     end
   case `"type" of _ ->
-    `TypeError of "abc"
-end;
+    `TypeError of "err1"
+  end;
 
 module.exports
   := `verify of verify

@@ -9,6 +9,9 @@ Token ")"
 Notation "$a ; $b" := "@SEQUENCE $a $b"
          level 0 right associativity
 
+Notation "unit" := "@UNIT"
+         level 3000 no associativity
+
 Notation "$a . $b" := "@MEMBER $a $b"
          level 2000 left associativity
 
@@ -36,11 +39,8 @@ Notation "^ $a -> $b" := "@LAMBDA $a $b"
 Notation "$a | $b" := "@EITHER-TYPE $a $b"
          level 40 right associativity
 
-Notation "unit" := "@UNIT"
-         level 3000 no associativity
-
 Notation "$a , $b" := "@ORDERED-PAIR $a $b"
-         level 1850 right associativity
+         level 50 right associativity
 
 Notation "$a & $b" := "@UNORDERED-PAIR $a $b"
          level 50 right associativity
@@ -50,6 +50,9 @@ Notation "` $a of $b" := "@VARIANT $a $b"
 
 Notation "simple $a" := "@SIMPLE-TYPE $a"
          level 70 right associativity
+
+Notation "$a @eq $b" := "@EQ $a $b"
+         level 100 no associativity
 
 Notation "$a @or $b" := "@OR $a $b"
          level 200 right associativity
