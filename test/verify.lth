@@ -32,3 +32,17 @@ describe "type verifier" by
     assert.deepEqual(verify(`"type" of "Assign" & `left of `"type" of "String" & `right of `"type" of "Integer"), (`TypeError of (`Simple of "string", `Simple of "int")))
   and_also it "verifies assign(string, unit)" as
     assert.deepEqual(verify(`"type" of "Assign" & `left of `"type" of "String" & `right of `"type" of "Unit"), (`TypeError of (`Simple of "string", `Simple of "unit")))
+  and_also it "verifies seq(assign(string, string), string)" as
+    assert.deepEqual(
+        verify( `"type" of "Sequence"
+              & `left of (`"type" of "Assign" & `left of `"type" of "String" & `right of `"type" of "String")
+              & `right of `"type" of "String"
+              ),
+        (`Type of `Simple of "string"))
+  and_also it "verifies seq(assign(string, int), string)" as
+    assert.deepEqual(
+        verify( `"type" of "Sequence"
+              & `left of (`"type" of "Assign" & `left of `"type" of "String" & `right of `"type" of "Integer")
+              & `right of `"type" of "String"
+              ),
+        (`TypeError of (`Simple of "string", `Simple of "int")))

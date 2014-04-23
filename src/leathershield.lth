@@ -32,13 +32,10 @@ verify := ^ ast : AST, e : TypeEnv -> begin
     lResult := verify(l, e);
     rResult := verify(r, e);
     match lResult 
-    case `Type of lTy -> begin
-      match lTy
-      case `"Simple" of "unit" ->
-        rResult
-      case _ ->
-        `TypeError of (`Simple of "unit", lTy)
-      end
+    case `Type of `Simple of "unit" ->
+      rResult
+    case `Type of lTy ->
+      `TypeError of (`Simple of "unit", lTy)
     case `TypeError of _ ->
       lResult
     end

@@ -72,7 +72,7 @@ mkTest :: AST.AST -> JavaScriptAST -> JavaScriptAST
 mkTest (AST.Variant x y) ident = do
   let test1 = Member ident (fromAST x)
   let test2 = mkTest y test1
-  test2
+  And test1 test2
 mkTest (AST.OrderedPair x y@(AST.OrderedPair _ _)) it = do
   let test1 = mkTest x (Member it (IntLit 0))
   let test2 = mkTest y (Call (Member it (Identifier "slice")) [(IntLit 1)])
