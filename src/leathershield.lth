@@ -2,20 +2,38 @@ type string = simple string;
 type int = simple int;
 type Type = `Simple of string;
 type Result
-  = `TypeError of string
-  | `Type of Type;
+  = `Type of Type
+  | `TypeError of string
+  ;
 type TypeEnv = simple map;
 type StrLit = `"type" of string & `value of string;
 type IntLit = `"type" of string & `value of int;
+type UnitLit = `"type" of string
 type AST = StrLit | IntLit;
 
 verify : ^ AST, TypeEnv -> Result;
 verify := ^ ast : AST, e : TypeEnv -> begin
   match ast
   case `"type" of "String" ->
-    `Simple of "string"
+    `Type of `Simple of "string"
   case `"type" of "Integer" ->
-    `Simple of "int"
+    `Type of `Simple of "int"
+  case `"type" of "Unit" ->
+    `Type of `Simple of "unit"
+  case `"type" of "Sequence" & `left of l & `right of r -> begin
+    lResult := verify(l, e);
+    rResult := verify(r, e);
+    match lResult
+    case `Type of lTy -> begin
+      match lTy
+      case `"Simple" of "unit" ->
+        rResult
+      case _ ->
+        `TypeError of "err"
+      end
+    case `TypeError of _ ->
+      lResult
+    end
   case `"type" of _ ->
     `TypeError of "abc"
 end;

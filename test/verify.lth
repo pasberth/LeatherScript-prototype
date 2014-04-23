@@ -2,7 +2,11 @@ assert := (require "chai").assert;
 verify := (require "./../src/leathershield").verify;
 
 describe "type verifier" by
-  it "verifies a string" as (
-    result := verify(`"type" of "String");
-    assert.property(result, "Simple");
-    assert.equal(result.Simple, "string"))
+  it "verifies a string" as
+    assert.deepEqual(verify(`"type" of "String"), (`Type of `Simple of "string"))
+  and_also it "verifies a integer" as
+    assert.deepEqual(verify(`"type" of "Integer"), (`Type of `Simple of "int"))
+  and_also it "verifies unit" as
+    assert.deepEqual(verify(`"type" of "Unit"), (`Type of `Simple of "unit"))
+  and_also it "verifies seq(unit, string)" as
+    assert.deepEqual(verify(`"type" of "Sequence" & `left of `"type" of "Unit" & `right of `"type" of "String"), (`Type of `Simple of "string"))
